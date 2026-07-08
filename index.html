@@ -2,177 +2,254 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>효소 반응 RGB 데이터 분석기 (Ultimate 버전)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>효소 반응 RGB 정밀 분석기 (모바일 최적화)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* 기본 모바일 퍼스트 스타일 */
         body {
-            font-family: 'Malgun Gothic', sans-serif;
-            background-color: #f8f9fa;
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Malgun Gothic";
+            background-color: #f1f3f5;
+            padding: 12px;
+            margin: 0;
             color: #333;
+            -webkit-user-select: none; /* 모바일 더블탭 줌 방지 및 선택 방지 */
         }
-        h2 { color: #2c3e50; }
+        h2 { 
+            color: #2c3e50; 
+            font-size: 20px; 
+            margin-top: 10px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .instruction {
+            background-color: #e9ecef;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
         .container {
             display: flex;
-            flex-wrap: wrap;
-            gap: 30px;
-            margin-top: 20px;
+            flex-direction: column;
+            gap: 16px;
         }
-        .left-panel {
+        
+        /* 카드 공통 스타일 */
+        .left-panel, .chart-box, #dataLog {
             background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            flex: 1;
-            min-width: 350px;
-            align-self: flex-start;
-            position: sticky;
-            top: 20px;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
-        .right-panel {
-            background: transparent;
-            flex: 1.5;
-            min-width: 400px;
+
+        .left-panel {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 12px;
         }
-        .chart-box {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+
+        /* 이미지 표시 캔버스 모바일 최적화 */
+        .canvas-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        canvas #imageCanvas {
+            border: 2px dashed #cbd5e1;
+            cursor: crosshair; 
+            width: 100% !important; /* 모바일 화면에 맞춰 100% 확장 */
+            height: auto !important;
+            border-radius: 8px;
+            background-color: #f8fafc;
+        }
+
+        /* 컨트롤러 디자인 */
+        .controls {
+            padding: 12px;
+            background-color: #e3f2fd;
+            border-radius: 8px;
+            border: 1px solid #90caf9;
+        }
+        .time-setting {
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #0056b3;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .time-setting input {
+            width: 60px;
+            padding: 6px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background-color: white;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        /* 버튼 모바일 터치 타겟 최적화 (높이 확보) */
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px 10px; /* 터치하기 쉬운 충분한 두께 */
+            font-size: 13px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+            text-align: center;
+        }
+        .btn:disabled { background-color: #cbd5e1; cursor: not-allowed; color: #94a3b8; }
+        .btn-undo { background-color: #ffc107; color: #000; }
+        .btn-reset { background-color: #dc3545; color: #fff; }
+        .btn-download { background-color: #28a745; color: #fff; }
+        .btn-sm { padding: 8px 12px; font-size: 12px; flex: none; }
+        
+        .btn-download-all { 
+            background-color: #17a2b8; 
+            color: #fff; 
+            font-size: 15px; 
+            padding: 14px; 
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* 차트 영역 */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
         .chart-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
+            margin-bottom: 8px;
+            border-bottom: 2px solid #f1f3f5;
+            padding-bottom: 8px;
         }
-        .chart-header h4 { margin: 0; }
-        
-        canvas {
-            border: 1px dashed #aaa;
-            cursor: crosshair; 
-            max-width: 100%;
-            border-radius: 5px;
-            background-color: white;
-        }
+        .chart-header h4 { margin: 0; font-size: 15px; }
         canvas.chart-canvas {
-            border: none;
-            cursor: default;
+            width: 100% !important;
+            height: auto !important;
         }
 
-        .controls {
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #e3f2fd;
-            border-radius: 8px;
-            border: 1px solid #90caf9;
-        }
-        .controls input[type="file"] { margin-bottom: 15px; display: block; }
-        .btn {
-            padding: 8px 15px;
-            margin-right: 5px;
-            margin-bottom: 5px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: 0.2s;
-        }
-        .btn-sm { padding: 5px 10px; font-size: 12px; }
-        .btn:disabled { background-color: #ccc; cursor: not-allowed; color: #666; }
-        .btn-undo { background-color: #ffc107; color: #000; }
-        .btn-undo:hover:not(:disabled) { background-color: #e0a800; }
-        .btn-reset { background-color: #dc3545; color: #fff; }
-        .btn-reset:hover { background-color: #c82333; }
-        .btn-download { background-color: #28a745; color: #fff; }
-        .btn-download:hover:not(:disabled) { background-color: #218838; }
-        .btn-download-all { background-color: #17a2b8; color: #fff; width: 100%; font-size: 16px; padding: 15px; }
-        .btn-download-all:hover:not(:disabled) { background-color: #138496; }
-        
-        .instruction {
-            background-color: #e9ecef;
-            padding: 15px;
-            border-radius: 5px;
+        #imageStatus {
             font-size: 14px;
-        }
-        #dataLog {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            font-size: 14px;
-            line-height: 1.6;
-        }
-        .time-setting {
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #0056b3;
-        }
-        .time-setting input {
-            width: 50px;
+            margin: 5px 0;
             text-align: center;
-            font-weight: bold;
+        }
+
+        #dataLog {
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 150px;
+            overflow-y: auto; /* 로그가 길어지면 스크롤 처리 */
+        }
+
+        /* PC 및 태블릿 가로 화면용 미디어 쿼리 (화면이 넓어지면 2열 배치) */
+        @media (min-width: 992px) {
+            body { padding: 24px; }
+            h2 { font-size: 24px; text-align: left; }
+            .container {
+                flex-direction: row;
+                align-items: flex-start;
+            }
+            .left-panel {
+                flex: 1;
+                min-width: 380px;
+                position: sticky;
+                top: 20px;
+            }
+            .right-panel {
+                flex: 1.5;
+                min-width: 450px;
+            }
+            .instruction { font-size: 14px; padding: 16px; }
         }
     </style>
 </head>
 <body>
 
-    <h2>🧪 효소 반응 RGB 분석</h2>
+    <h2>🧪 효소 반응 RGB 3채널 정밀 분석기</h2>
     <div class="instruction">
-        <strong>[사용 방법]</strong><br>
-        1. <b>촬영 간격(분)</b>을 설정하고 사진을 모두 업로드하세요.<br>
-        2. 이미지의 시험관 중앙을 클릭하면 R, G, B 세 가지 그래프가 동시에 실시간으로 그려집니다.<br>
-        3. 우측 상단의 <b>[일괄 다운로드]</b>를 누르면 3개의 그래프가 한 번에 저장됩니다.
+        <strong>[모바일 사용 방법]</strong><br>
+        1. <b>촬영 간격</b>을 입력하고 사진들을 한 번에 선택하세요.<br>
+        2. 화면에 뜨는 사진 속 <b>시험관 중심을 손가락으로 터치</b>하세요.<br>
+        3. 터치할 때마다 R, G, B 그래프가 실시간 업데이트됩니다.<br>
+        4. 실수했다면 [이전 사진] 버튼을 누르세요.
     </div>
 
     <div class="container">
         <div class="left-panel">
             <div class="controls">
                 <div class="time-setting">
-                    <label for="intervalInput">⏱️ 사진 1장당 촬영 간격: </label>
+                    <label for="intervalInput">⏱️ 촬영 간격: </label>
                     <input type="number" id="intervalInput" value="1" min="1"> 분
                 </div>
                 <input type="file" id="imageInput" accept="image/*" multiple>
                 
-                <button id="undoBtn" class="btn btn-undo" disabled>↩ 이전 사진 (실행 취소)</button>
-                <button id="resetBtn" class="btn btn-reset">🔄 처음부터 다시 하기</button>
+                <div class="btn-group">
+                    <button id="undoBtn" class="btn btn-undo" disabled>↩ 이전 사진</button>
+                    <button id="resetBtn" class="btn btn-reset">🔄 초기화</button>
+                </div>
             </div>
             
             <h3 id="imageStatus" style="color: #007bff;">사진을 업로드해주세요</h3>
-            <canvas id="imageCanvas"></canvas>
+            <div class="canvas-container">
+                <canvas id="imageCanvas"></canvas>
+            </div>
             
-            <div id="dataLog" style="margin-top: 20px;"></div>
+            <div id="dataLog"><h4>📝 데이터 로그</h4></div>
         </div>
 
         <div class="right-panel">
-            <button id="downloadAllBtn" class="btn btn-download-all" disabled>📥 R, G, B 그래프 모두 한 번에 저장하기</button>
+            <button id="downloadAllBtn" class="btn btn-download-all" disabled>📥 모든 그래프 이미지 일괄 저장</button>
 
             <div class="chart-box">
                 <div class="chart-header">
-                    <h4 style="color: #dc3545;">🔴 R (Red) 변화</h4>
-                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartR" data-name="Red_Graph" disabled>R그래프 저장</button>
+                    <h4 style="color: #dc3545;">🔴 R (Red) 채널 변화</h4>
+                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartR" data-name="Red_Graph" disabled>저장</button>
                 </div>
                 <canvas id="chartR" class="chart-canvas"></canvas>
             </div>
 
             <div class="chart-box">
                 <div class="chart-header">
-                    <h4 style="color: #28a745;">🟢 G (Green) 변화</h4>
-                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartG" data-name="Green_Graph" disabled>G그래프 저장</button>
+                    <h4 style="color: #28a745;">🟢 G (Green) 채널 변화</h4>
+                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartG" data-name="Green_Graph" disabled>저장</button>
                 </div>
                 <canvas id="chartG" class="chart-canvas"></canvas>
             </div>
 
             <div class="chart-box">
                 <div class="chart-header">
-                    <h4 style="color: #007bff;">🔵 B (Blue) 변화</h4>
-                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartB" data-name="Blue_Graph" disabled>B그래프 저장</button>
+                    <h4 style="color: #007bff;">🔵 B (Blue) 채널 변화</h4>
+                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartB" data-name="Blue_Graph" disabled>저장</button>
                 </div>
                 <canvas id="chartB" class="chart-canvas"></canvas>
             </div>
@@ -196,12 +273,11 @@
         let currentIndex = 0;
         let records = []; 
         
-        // 3개의 차트 객체를 담을 변수
         let chartR = null;
         let chartG = null;
         let chartB = null;
 
-        // 배경 흰색 플러그인
+        // 배경 백색화 플러그인
         const customCanvasBackgroundColor = {
             id: 'customCanvasBackgroundColor',
             beforeDraw: (chart, args, options) => {
@@ -214,7 +290,7 @@
             }
         };
 
-        // 데이터 숫자 표시 플러그인
+        // 데이터 라벨 플러그인
         const dataLabelsPlugin = {
             id: 'dataLabelsPlugin',
             afterDatasetsDraw(chart, args, pluginOptions) {
@@ -224,11 +300,11 @@
                     if (!meta.hidden) {
                         meta.data.forEach((element, index) => {
                             ctx.fillStyle = '#2c3e50';
-                            ctx.font = 'bold 13px "Malgun Gothic", sans-serif';
+                            ctx.font = 'bold 11px "Malgun Gothic", sans-serif'; // 모바일 가독성을 위해 크기 소폭 축소
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'bottom';
                             const dataString = dataset.data[index].toString();
-                            ctx.fillText(dataString, element.x, element.y - 12);
+                            ctx.fillText(dataString, element.x, element.y - 8);
                         });
                     }
                 });
@@ -286,7 +362,7 @@
                 status.innerText = "✅ 모든 사진 분석이 완료되었습니다!";
                 status.style.color = "#28a745";
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.font = "bold 24px 'Malgun Gothic'";
+                ctx.font = "bold 20px 'Malgun Gothic'";
                 ctx.fillStyle = "#666";
                 ctx.textAlign = "center";
                 ctx.fillText("분석 종료", canvas.width/2, canvas.height/2);
@@ -294,13 +370,14 @@
             }
 
             const currentMin = currentIndex * parseInt(intervalInput.value);
-            status.innerText = `[${currentMin}분 경과 사진] 시험관을 클릭하세요.`;
+            status.innerText = `[${currentMin}분 사진] 시험관 중심을 터치하세요.`;
             status.style.color = "#dc3545";
             
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = new Image();
                 img.onload = function() {
+                    // 고해상도 이미지 종횡비 유지 스케일링
                     canvas.width = img.width > 600 ? 600 : img.width;
                     canvas.height = img.height * (canvas.width / img.width);
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -310,14 +387,20 @@
             reader.readAsDataURL(images[currentIndex]);
         }
 
+        // 클릭/터치 이벤트 통합 처리
         canvas.addEventListener('click', (e) => {
             if(currentIndex >= images.length) return;
 
             const rect = canvas.getBoundingClientRect();
+            // 모바일 반응형 크기 변화 비율을 정밀하게 보정하여 매핑
             const x = (e.clientX - rect.left) * (canvas.width / rect.width);
             const y = (e.clientY - rect.top) * (canvas.height / rect.height);
 
-            const pixel = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
+            // 안전 경계 처리
+            const targetX = Math.max(0, Math.min(canvas.width - 1, Math.round(x)));
+            const targetY = Math.max(0, Math.min(canvas.height - 1, Math.round(y)));
+
+            const pixel = ctx.getImageData(targetX, targetY, 1, 1).data;
             const timeVal = currentIndex * parseInt(intervalInput.value);
 
             records.push({
@@ -334,10 +417,12 @@
         });
 
         function updateLogAndButtons() {
-            dataLog.innerHTML = "<h4>📝 추출된 데이터 로그</h4>";
+            dataLog.innerHTML = "<h4>📝 데이터 로그</h4>";
             records.forEach(rec => {
-                dataLog.innerHTML += `시간: <b>${rec.timeLabel}</b> | <span style="color:#dc3545; font-weight:bold;">R: ${rec.r}</span>, <span style="color:#28a745; font-weight:bold;">G: ${rec.g}</span>, <span style="color:#007bff; font-weight:bold;">B: ${rec.b}</span><br>`;
+                dataLog.innerHTML += `시간: <b>${rec.timeLabel}</b> | <span style="color:#dc3545;">R:${rec.r}</span> <span style="color:#28a745;">G:${rec.g}</span> <span style="color:#007bff;">B:${rec.b}</span><br>`;
             });
+            // 최신 로그를 상단에 보여주기 위해 스크롤 최하단 이동
+            dataLog.scrollTop = dataLog.scrollHeight;
 
             const hasData = records.length > 0;
             undoBtn.disabled = !hasData;
@@ -345,7 +430,6 @@
             singleDlBtns.forEach(btn => btn.disabled = !hasData);
         }
 
-        // 공통 차트 생성 함수
         function createOrUpdateChart(chartObj, canvasId, labels, data, labelName, colorHex) {
             if(chartObj) {
                 chartObj.data.labels = labels;
@@ -362,10 +446,10 @@
                             label: labelName,
                             data: data,
                             borderColor: colorHex,
-                            backgroundColor: colorHex + '33', // 투명도 추가
+                            backgroundColor: colorHex + '22', 
                             borderWidth: 2,
-                            pointRadius: 6,
-                            pointHoverRadius: 8,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
                             pointBackgroundColor: colorHex,
                             fill: true,
                             tension: 0.1
@@ -373,18 +457,20 @@
                     },
                     options: {
                         responsive: true,
-                        layout: { padding: { top: 25 } },
+                        maintainAspectRatio: false, /* 모바일 가로-세로 가변 스케일 최적화 */
+                        layout: { padding: { top: 20, right: 10 } },
                         plugins: {
-                            customCanvasBackgroundColor: { color: 'white' }
+                            customCanvasBackgroundColor: { color: 'white' },
+                            legend: { labels: { boxWidth: 12, font: { size: 11 } } }
                         },
                         scales: {
                             y: { 
                                 beginAtZero: true, 
                                 max: 255,
-                                title: { display: true, text: '픽셀 값 (0~255)', font: {weight: 'bold'} }
+                                ticks: { font: { size: 10 } }
                             },
                             x: {
-                                title: { display: true, text: '경과 시간', font: {weight: 'bold'} }
+                                ticks: { font: { size: 10 } }
                             }
                         }
                     },
@@ -399,12 +485,14 @@
             const gData = records.map(r => r.g);
             const bData = records.map(r => r.b);
 
-            chartR = createOrUpdateChart(chartR, 'chartR', labels, rData, 'Red 변화량', '#dc3545');
-            chartG = createOrUpdateChart(chartG, 'chartG', labels, gData, 'Green 변화량', '#28a745');
-            chartB = createOrUpdateChart(chartB, 'chartB', labels, bData, 'Blue 변화량', '#007bff');
+            // 모바일 화면 비율을 고려해 캔버스 컨테이너 높이 강제 설정
+            document.querySelectorAll('.chart-box canvas').forEach(c => c.style.height = '180px');
+
+            chartR = createOrUpdateChart(chartR, 'chartR', labels, rData, 'Red', '#dc3545');
+            chartG = createOrUpdateChart(chartG, 'chartG', labels, gData, 'Green', '#28a745');
+            chartB = createOrUpdateChart(chartB, 'chartB', labels, bData, 'Blue', '#007bff');
         }
 
-        // 개별 다운로드 함수
         function downloadCanvasAsImage(canvasId, fileName) {
             const chartCanvas = document.getElementById(canvasId);
             if(!chartCanvas) return;
@@ -415,7 +503,6 @@
             link.click();
         }
 
-        // 개별 다운로드 버튼 이벤트 연결
         singleDlBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const targetCanvas = e.target.getAttribute('data-target');
@@ -424,14 +511,11 @@
             });
         });
 
-        // 일괄 다운로드 버튼 이벤트 (시간차를 두어 브라우저 팝업 차단 방지)
         downloadAllBtn.addEventListener('click', () => {
             if(!chartR || !chartG || !chartB) return;
-            
-            // 0.5초 간격으로 순차 다운로드 실행
             setTimeout(() => downloadCanvasAsImage('chartR', '1_Red_Graph'), 0);
-            setTimeout(() => downloadCanvasAsImage('chartG', '2_Green_Graph'), 500);
-            setTimeout(() => downloadCanvasAsImage('chartB', '3_Blue_Graph'), 1000);
+            setTimeout(() => downloadCanvasAsImage('chartG', '2_Green_Graph'), 400);
+            setTimeout(() => downloadCanvasAsImage('chartB', '3_Blue_Graph'), 800);
         });
     </script>
 </body>
