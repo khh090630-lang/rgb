@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>효소 반응 RGB 데이터 분석기</title>
+    <title>효소 반응 RGB 데이터 분석기 (Ultimate 버전)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -19,14 +19,41 @@
             gap: 30px;
             margin-top: 20px;
         }
-        .left-panel, .right-panel {
+        .left-panel {
             background: white;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             flex: 1;
             min-width: 350px;
+            align-self: flex-start;
+            position: sticky;
+            top: 20px;
         }
+        .right-panel {
+            background: transparent;
+            flex: 1.5;
+            min-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .chart-box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .chart-header h4 { margin: 0; }
+        
         canvas {
             border: 1px dashed #aaa;
             cursor: crosshair; 
@@ -34,6 +61,11 @@
             border-radius: 5px;
             background-color: white;
         }
+        canvas.chart-canvas {
+            border: none;
+            cursor: default;
+        }
+
         .controls {
             margin-bottom: 20px;
             padding: 15px;
@@ -52,6 +84,7 @@
             font-weight: bold;
             transition: 0.2s;
         }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
         .btn:disabled { background-color: #ccc; cursor: not-allowed; color: #666; }
         .btn-undo { background-color: #ffc107; color: #000; }
         .btn-undo:hover:not(:disabled) { background-color: #e0a800; }
@@ -59,6 +92,8 @@
         .btn-reset:hover { background-color: #c82333; }
         .btn-download { background-color: #28a745; color: #fff; }
         .btn-download:hover:not(:disabled) { background-color: #218838; }
+        .btn-download-all { background-color: #17a2b8; color: #fff; width: 100%; font-size: 16px; padding: 15px; }
+        .btn-download-all:hover:not(:disabled) { background-color: #138496; }
         
         .instruction {
             background-color: #e9ecef;
@@ -67,7 +102,10 @@
             font-size: 14px;
         }
         #dataLog {
-            margin-top: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             font-size: 14px;
             line-height: 1.6;
         }
@@ -85,13 +123,12 @@
 </head>
 <body>
 
-    <h2>🧪 효소 반응 RGB 데이터 자동 분석기</h2>
+    <h2>🧪 효소 반응 RGB 3채널 정밀 분석기</h2>
     <div class="instruction">
         <strong>[사용 방법]</strong><br>
-        1. <b>촬영 간격(분)</b>을 먼저 설정하세요.<br>
-        2. [파일 선택]을 눌러 시간 순서대로 촬영한 실험 사진들을 한 번에 모두 선택하세요.<br>
-        3. 아래에 첫 번째 사진이 뜨면, 분석할 <b>시험관 용액의 정중앙을 마우스로 클릭</b>하세요.<br>
-        4. 잘못 클릭했다면 [실행 취소]를 누르고, 분석이 끝나면 [그래프 저장]을 누르세요.
+        1. <b>촬영 간격(분)</b>을 설정하고 사진을 모두 업로드하세요.<br>
+        2. 이미지의 시험관 중앙을 클릭하면 R, G, B 세 가지 그래프가 동시에 실시간으로 그려집니다.<br>
+        3. 우측 상단의 <b>[일괄 다운로드]</b>를 누르면 3개의 그래프가 한 번에 저장됩니다.
     </div>
 
     <div class="container">
@@ -103,20 +140,42 @@
                 </div>
                 <input type="file" id="imageInput" accept="image/*" multiple>
                 
-                <button id="undoBtn" class="btn btn-undo" disabled>↩ 이전 사진으로 (실행 취소)</button>
+                <button id="undoBtn" class="btn btn-undo" disabled>↩ 이전 사진 (실행 취소)</button>
                 <button id="resetBtn" class="btn btn-reset">🔄 처음부터 다시 하기</button>
             </div>
             
             <h3 id="imageStatus" style="color: #007bff;">사진을 업로드해주세요</h3>
             <canvas id="imageCanvas"></canvas>
+            
+            <div id="dataLog" style="margin-top: 20px;"></div>
         </div>
 
         <div class="right-panel">
-            <div style="text-align: right; margin-bottom: 10px;">
-                <button id="downloadBtn" class="btn btn-download" disabled>💾 그래프 이미지로 저장</button>
+            <button id="downloadAllBtn" class="btn btn-download-all" disabled>📥 R, G, B 그래프 모두 한 번에 저장하기</button>
+
+            <div class="chart-box">
+                <div class="chart-header">
+                    <h4 style="color: #dc3545;">🔴 R (Red) 채널 변화</h4>
+                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartR" data-name="Red_Graph" disabled>R그래프 저장</button>
+                </div>
+                <canvas id="chartR" class="chart-canvas"></canvas>
             </div>
-            <canvas id="resultChart"></canvas>
-            <div id="dataLog"></div>
+
+            <div class="chart-box">
+                <div class="chart-header">
+                    <h4 style="color: #28a745;">🟢 G (Green) 채널 변화</h4>
+                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartG" data-name="Green_Graph" disabled>G그래프 저장</button>
+                </div>
+                <canvas id="chartG" class="chart-canvas"></canvas>
+            </div>
+
+            <div class="chart-box">
+                <div class="chart-header">
+                    <h4 style="color: #007bff;">🔵 B (Blue) 채널 변화</h4>
+                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartB" data-name="Blue_Graph" disabled>B그래프 저장</button>
+                </div>
+                <canvas id="chartB" class="chart-canvas"></canvas>
+            </div>
         </div>
     </div>
 
@@ -128,17 +187,21 @@
         const status = document.getElementById('imageStatus');
         const dataLog = document.getElementById('dataLog');
         
-        // 버튼 요소
         const undoBtn = document.getElementById('undoBtn');
         const resetBtn = document.getElementById('resetBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const singleDlBtns = document.querySelectorAll('.single-dl-btn');
 
         let images = [];
         let currentIndex = 0;
-        let chart = null;
         let records = []; 
+        
+        // 3개의 차트 객체를 담을 변수
+        let chartR = null;
+        let chartG = null;
+        let chartB = null;
 
-        // 🌟 기능 추가: 차트 배경을 흰색으로 만들어주는 플러그인
+        // 배경 흰색 플러그인
         const customCanvasBackgroundColor = {
             id: 'customCanvasBackgroundColor',
             beforeDraw: (chart, args, options) => {
@@ -151,7 +214,7 @@
             }
         };
 
-        // 🌟 기능 추가: 데이터 포인트 위에 숫자를 직접 그려주는 플러그인
+        // 데이터 숫자 표시 플러그인
         const dataLabelsPlugin = {
             id: 'dataLabelsPlugin',
             afterDatasetsDraw(chart, args, pluginOptions) {
@@ -160,16 +223,11 @@
                     const meta = chart.getDatasetMeta(i);
                     if (!meta.hidden) {
                         meta.data.forEach((element, index) => {
-                            // 숫자 텍스트 스타일 설정
                             ctx.fillStyle = '#2c3e50';
                             ctx.font = 'bold 13px "Malgun Gothic", sans-serif';
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'bottom';
-                            
-                            // G값 텍스트 가져오기
                             const dataString = dataset.data[index].toString();
-                            
-                            // 점(Point)보다 위쪽(y - 12)에 글씨 쓰기
                             ctx.fillText(dataString, element.x, element.y - 12);
                         });
                     }
@@ -177,28 +235,25 @@
             }
         };
 
-        // 1. 파일 업로드 이벤트
         input.addEventListener('change', (e) => {
             if(e.target.files.length === 0) return;
             images = Array.from(e.target.files);
             startProcess();
         });
 
-        // 2. 초기화 및 시작 함수
         function startProcess() {
             currentIndex = 0;
             records = [];
             intervalInput.disabled = true; 
             
-            if(chart) {
-                chart.destroy();
-                chart = null;
-            }
+            if(chartR) { chartR.destroy(); chartR = null; }
+            if(chartG) { chartG.destroy(); chartG = null; }
+            if(chartB) { chartB.destroy(); chartB = null; }
+            
             updateLogAndButtons();
             loadNextImage();
         }
 
-        // 3. 완전히 처음부터 다시 하기 버튼
         resetBtn.addEventListener('click', () => {
             input.value = ""; 
             images = [];
@@ -210,28 +265,28 @@
             status.innerText = "사진을 업로드해주세요";
             status.style.color = "#007bff";
             
-            if(chart) { chart.destroy(); chart = null; }
+            if(chartR) { chartR.destroy(); chartR = null; }
+            if(chartG) { chartG.destroy(); chartG = null; }
+            if(chartB) { chartB.destroy(); chartB = null; }
             updateLogAndButtons();
         });
 
-        // 4. 실행 취소 (이전 단계로) 버튼
         undoBtn.addEventListener('click', () => {
             if(records.length > 0) {
                 records.pop(); 
                 currentIndex--; 
                 updateLogAndButtons();
-                updateChart();
+                updateAllCharts();
                 loadNextImage(); 
             }
         });
 
-        // 5. 이미지를 캔버스에 그리는 함수
         function loadNextImage() {
             if (currentIndex >= images.length) {
                 status.innerText = "✅ 모든 사진 분석이 완료되었습니다!";
                 status.style.color = "#28a745";
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.font = "20px Arial";
+                ctx.font = "bold 24px 'Malgun Gothic'";
                 ctx.fillStyle = "#666";
                 ctx.textAlign = "center";
                 ctx.fillText("분석 종료", canvas.width/2, canvas.height/2);
@@ -255,7 +310,6 @@
             reader.readAsDataURL(images[currentIndex]);
         }
 
-        // 6. 캔버스를 클릭했을 때 RGB 값 추출하는 함수
         canvas.addEventListener('click', (e) => {
             if(currentIndex >= images.length) return;
 
@@ -266,7 +320,6 @@
             const pixel = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
             const timeVal = currentIndex * parseInt(intervalInput.value);
 
-            // 데이터 기록
             records.push({
                 timeLabel: `${timeVal}분`,
                 r: pixel[0],
@@ -276,55 +329,51 @@
 
             currentIndex++;
             updateLogAndButtons();
-            updateChart();
+            updateAllCharts();
             loadNextImage();
         });
 
-        // 7. 로그 창 텍스트 갱신 및 버튼 활성화 관리
         function updateLogAndButtons() {
-            dataLog.innerHTML = "<h4>📝 추출된 데이터</h4>";
+            dataLog.innerHTML = "<h4>📝 추출된 데이터 로그</h4>";
             records.forEach(rec => {
-                dataLog.innerHTML += `시간: <b>${rec.timeLabel}</b> | R: ${rec.r}, <b>G: <span style="color:green">${rec.g}</span></b>, B: ${rec.b}<br>`;
+                dataLog.innerHTML += `시간: <b>${rec.timeLabel}</b> | <span style="color:#dc3545; font-weight:bold;">R: ${rec.r}</span>, <span style="color:#28a745; font-weight:bold;">G: ${rec.g}</span>, <span style="color:#007bff; font-weight:bold;">B: ${rec.b}</span><br>`;
             });
 
-            undoBtn.disabled = records.length === 0;
-            downloadBtn.disabled = records.length === 0;
+            const hasData = records.length > 0;
+            undoBtn.disabled = !hasData;
+            downloadAllBtn.disabled = !hasData;
+            singleDlBtns.forEach(btn => btn.disabled = !hasData);
         }
 
-        // 8. Chart.js 그래프 그리기 및 업데이트
-        function updateChart() {
-            const labels = records.map(r => r.timeLabel);
-            const gData = records.map(r => r.g);
-            
-            if(chart) {
-                chart.data.labels = labels;
-                chart.data.datasets[0].data = gData;
-                chart.update();
+        // 공통 차트 생성 함수
+        function createOrUpdateChart(chartObj, canvasId, labels, data, labelName, colorHex) {
+            if(chartObj) {
+                chartObj.data.labels = labels;
+                chartObj.data.datasets[0].data = data;
+                chartObj.update();
+                return chartObj;
             } else {
-                const ctxChart = document.getElementById('resultChart').getContext('2d');
-                chart = new Chart(ctxChart, {
+                const ctxChart = document.getElementById(canvasId).getContext('2d');
+                return new Chart(ctxChart, {
                     type: 'line',
                     data: {
                         labels: labels,
                         datasets: [{
-                            label: '요오드 용액 색상(Green) 변화',
-                            data: gData,
-                            borderColor: '#28a745',
-                            backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                            label: labelName,
+                            data: data,
+                            borderColor: colorHex,
+                            backgroundColor: colorHex + '33', // 투명도 추가
                             borderWidth: 2,
                             pointRadius: 6,
                             pointHoverRadius: 8,
-                            pointBackgroundColor: '#28a745',
+                            pointBackgroundColor: colorHex,
                             fill: true,
                             tension: 0.1
                         }]
                     },
                     options: {
                         responsive: true,
-                        layout: {
-                            // 숫자 글씨가 그래프 맨 위쪽 선을 넘어가지 않도록 여백 추가
-                            padding: { top: 25 }
-                        },
+                        layout: { padding: { top: 25 } },
                         plugins: {
                             customCanvasBackgroundColor: { color: 'white' }
                         },
@@ -332,27 +381,57 @@
                             y: { 
                                 beginAtZero: true, 
                                 max: 255,
-                                title: { display: true, text: 'Green 픽셀 값 (0~255)', font: {weight: 'bold'} }
+                                title: { display: true, text: '픽셀 값 (0~255)', font: {weight: 'bold'} }
                             },
                             x: {
                                 title: { display: true, text: '경과 시간', font: {weight: 'bold'} }
                             }
                         }
                     },
-                    // 플러그인 배열에 숫자 표시 플러그인(dataLabelsPlugin) 추가!
                     plugins: [customCanvasBackgroundColor, dataLabelsPlugin] 
                 });
             }
         }
 
-        // 9. 그래프 이미지로 다운로드 하는 기능
-        downloadBtn.addEventListener('click', () => {
-            if(!chart) return;
-            const imgURL = document.getElementById('resultChart').toDataURL('image/png');
+        function updateAllCharts() {
+            const labels = records.map(r => r.timeLabel);
+            const rData = records.map(r => r.r);
+            const gData = records.map(r => r.g);
+            const bData = records.map(r => r.b);
+
+            chartR = createOrUpdateChart(chartR, 'chartR', labels, rData, 'Red 변화량', '#dc3545');
+            chartG = createOrUpdateChart(chartG, 'chartG', labels, gData, 'Green 변화량', '#28a745');
+            chartB = createOrUpdateChart(chartB, 'chartB', labels, bData, 'Blue 변화량', '#007bff');
+        }
+
+        // 개별 다운로드 함수
+        function downloadCanvasAsImage(canvasId, fileName) {
+            const chartCanvas = document.getElementById(canvasId);
+            if(!chartCanvas) return;
+            const imgURL = chartCanvas.toDataURL('image/png');
             const link = document.createElement('a');
             link.href = imgURL;
-            link.download = '효소반응그래프_데이터.png';
+            link.download = fileName + '.png';
             link.click();
+        }
+
+        // 개별 다운로드 버튼 이벤트 연결
+        singleDlBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetCanvas = e.target.getAttribute('data-target');
+                const name = e.target.getAttribute('data-name');
+                downloadCanvasAsImage(targetCanvas, name);
+            });
+        });
+
+        // 일괄 다운로드 버튼 이벤트 (시간차를 두어 브라우저 팝업 차단 방지)
+        downloadAllBtn.addEventListener('click', () => {
+            if(!chartR || !chartG || !chartB) return;
+            
+            // 0.5초 간격으로 순차 다운로드 실행
+            setTimeout(() => downloadCanvasAsImage('chartR', '1_Red_Graph'), 0);
+            setTimeout(() => downloadCanvasAsImage('chartG', '2_Green_Graph'), 500);
+            setTimeout(() => downloadCanvasAsImage('chartB', '3_Blue_Graph'), 1000);
         });
     </script>
 </body>
