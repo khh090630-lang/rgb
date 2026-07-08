@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>효소 반응 RGB 데이터 분석기</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #f8f9fa;
+            padding: 20px;
+            color: #333;
+        }
+        h2 { color: #2c3e50; }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        .left-panel, .right-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 300px;
+        }
+        canvas {
+            border: 1px dashed #aaa;
+            cursor: crosshair; /* 마우스를 올리면 십자 모양으로 변경 */
+            max-width: 100%;
+            border-radius: 5px;
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .instruction {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        #dataLog {
+            margin-top: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>🧪 효소 반응 RGB 데이터 자동 분석기</h2>
+    <div class="instruction">
+        <strong>[사용 방법]</strong><br>
+        1. [파일 선택]을 눌러 0분부터 5분까지 촬영한 사진 6장을 한 번에 모두 선택하세요.<br>
+        2. 아래에 첫 번째(0분) 사진이 뜨면, 분석할 <b>시험관 용액의 정중앙을 마우스로 클릭</b>하세요.<br>
+        3. 클릭할 때마다 자동으로 다음 시간대 사진으로 넘어가며, G(Green) 값 그래프가 그려집니다.
+    </div>
+
+    <div class="container">
+        <div class="left-panel">
+            <input type="file" id="imageInput" accept="image/*" multiple>
+            <h3 id="imageStatus" style="color: #007bff;">사진을 업로드해주세요</h3>
+            <canvas id="imageCanvas"></canvas>
+        </div>
+
+        <div class="right-panel">
+            <canvas id="resultChart"></canvas>
+            <div id="dataLog"></div>
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById('imageInput');
+        const canvas = document.getElementById('imageCanvas');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('imageStatus');
+        const dataLog = document.getElementById('dataLog');
+
+        let images = [];
+        let currentIndex = 0;
+        let chart = null;
+
+        // 그래프에 들어갈 데이터 배열
+        let times = [];
+        let gValues = [];
+
+        // 1. 파일이 업로드되었을 때 실행되는 함수
+        input.addEventListener('change', (e) => {
+            images = Array.from(e.target.files);
+            currentIndex = 0;
+            times = [];
+            gValues = [];
+            dataLog.innerHTML = "<h4>📝 추출된 데이터</h4>";
+            
+            if(chart) chart.destroy(); // 기존 그래프 초기화
+            if(images.length > 0) loadNextImage();
+        });
+
+        // 2. 이미지를 캔버스에 그리는 함수
+        function loadNextImage() {
+            if (currentIndex >= images.length) {
+                status.innerText = "✅ 모든 사진 분석이 완료되었습니다!";
+                status.style.color = "#28a745";
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
+
+            status.innerText = `[${currentIndex}분 경과 사진] 시험관을 클릭하세요.`;
+            status.style.color = "#dc3545";
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    // 화면 크기에 맞게 이미지 리사이징
+                    canvas.width = img.width > 500 ? 500 : img.width;
+                    canvas.height = img.height * (canvas.width / img.width);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(images[currentIndex]);
+        }
+
+        // 3. 캔버스를 클릭했을 때 RGB 값 추출하는 함수
+        canvas.addEventListener('click', (e) => {
+            if(currentIndex >= images.length) return;
+
+            // 클릭한 정확한 좌표 계산
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            // 해당 좌표의 픽셀 데이터 가져오기
+            const pixel = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
+            const rValue = pixel[0];
+            const gValue = pixel[1]; // 녹말-요오드 반응에서 가장 유의미한 G값 추출
+            const bValue = pixel[2];
+
+            // 배열에 데이터 추가
+            times.push(`${currentIndex}분`);
+            gValues.push(gValue);
+
+            // 텍스트로 데이터 기록 남기기
+            dataLog.innerHTML += `시간: <b>${currentIndex}분</b> | R: ${rValue}, <b>G: <span style="color:green">${gValue}</span></b>, B: ${bValue}<br>`;
+
+            // 그래프 업데이트 및 다음 사진으로 넘어가기
+            updateChart();
+            currentIndex++;
+            loadNextImage();
+        });
+
+        // 4. Chart.js를 이용해 꺾은선 그래프를 그리는 함수
+        function updateChart() {
+            const ctxChart = document.getElementById('resultChart').getContext('2d');
+            
+            if(chart) {
+                // 이미 그래프가 있으면 데이터만 갱신
+                chart.data.labels = times;
+                chart.data.datasets[0].data = gValues;
+                chart.update();
+            } else {
+                // 그래프 처음 생성
+                chart = new Chart(ctxChart, {
+                    type: 'line',
+                    data: {
+                        labels: times,
+                        datasets: [{
+                            label: '요오드 용액 색상(Green) 변화',
+                            data: gValues,
+                            borderColor: '#28a745',
+                            backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                            borderWidth: 2,
+                            pointRadius: 5,
+                            pointBackgroundColor: '#28a745',
+                            fill: true,
+                            tension: 0.1 // 꺾은선 부드럽게
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: { 
+                                beginAtZero: true, 
+                                max: 255,
+                                title: { display: true, text: 'Green 픽셀 값 (0~255)' }
+                            },
+                            x: {
+                                title: { display: true, text: '경과 시간 (분)' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
