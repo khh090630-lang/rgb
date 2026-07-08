@@ -3,17 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>효소 반응 RGB 정밀 분석기 (모바일 최적화)</title>
+    <title>효소 반응 RGB 정밀 분석기 (비율 최적화)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* 기본 모바일 퍼스트 스타일 */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Malgun Gothic";
             background-color: #f1f3f5;
             padding: 12px;
             margin: 0;
             color: #333;
-            -webkit-user-select: none; /* 모바일 더블탭 줌 방지 및 선택 방지 */
+            -webkit-user-select: none; 
         }
         h2 { 
             color: #2c3e50; 
@@ -36,7 +35,6 @@
             gap: 16px;
         }
         
-        /* 카드 공통 스타일 */
         .left-panel, .chart-box, #dataLog {
             background: white;
             padding: 16px;
@@ -50,7 +48,6 @@
             gap: 12px;
         }
 
-        /* 이미지 표시 캔버스 모바일 최적화 */
         .canvas-container {
             width: 100%;
             display: flex;
@@ -62,13 +59,12 @@
         canvas #imageCanvas {
             border: 2px dashed #cbd5e1;
             cursor: crosshair; 
-            width: 100% !important; /* 모바일 화면에 맞춰 100% 확장 */
+            width: 100% !important; 
             height: auto !important;
             border-radius: 8px;
             background-color: #f8fafc;
         }
 
-        /* 컨트롤러 디자인 */
         .controls {
             padding: 12px;
             background-color: #e3f2fd;
@@ -105,7 +101,6 @@
             margin-bottom: 8px;
         }
 
-        /* 버튼 모바일 터치 타겟 최적화 (높이 확보) */
         .btn-group {
             display: flex;
             gap: 8px;
@@ -113,7 +108,7 @@
         }
         .btn {
             flex: 1;
-            padding: 12px 10px; /* 터치하기 쉬운 충분한 두께 */
+            padding: 12px 10px; 
             font-size: 13px;
             border: none;
             border-radius: 6px;
@@ -138,7 +133,6 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* 차트 영역 */
         .right-panel {
             display: flex;
             flex-direction: column;
@@ -153,10 +147,6 @@
             padding-bottom: 8px;
         }
         .chart-header h4 { margin: 0; font-size: 15px; }
-        canvas.chart-canvas {
-            width: 100% !important;
-            height: auto !important;
-        }
 
         #imageStatus {
             font-size: 14px;
@@ -168,10 +158,9 @@
             font-size: 13px;
             line-height: 1.6;
             max-height: 150px;
-            overflow-y: auto; /* 로그가 길어지면 스크롤 처리 */
+            overflow-y: auto; 
         }
 
-        /* PC 및 태블릿 가로 화면용 미디어 쿼리 (화면이 넓어지면 2열 배치) */
         @media (min-width: 992px) {
             body { padding: 24px; }
             h2 { font-size: 24px; text-align: left; }
@@ -200,8 +189,7 @@
         <strong>[모바일 사용 방법]</strong><br>
         1. <b>촬영 간격</b>을 입력하고 사진들을 한 번에 선택하세요.<br>
         2. 화면에 뜨는 사진 속 <b>시험관 중심을 손가락으로 터치</b>하세요.<br>
-        3. 터치할 때마다 R, G, B 그래프가 실시간 업데이트됩니다.<br>
-        4. 실수했다면 [이전 사진] 버튼을 누르세요.
+        3. 터치할 때마다 데이터가 돋보기처럼 확대되어 실시간 업데이트됩니다.
     </div>
 
     <div class="container">
@@ -277,7 +265,6 @@
         let chartG = null;
         let chartB = null;
 
-        // 배경 백색화 플러그인
         const customCanvasBackgroundColor = {
             id: 'customCanvasBackgroundColor',
             beforeDraw: (chart, args, options) => {
@@ -290,7 +277,6 @@
             }
         };
 
-        // 데이터 라벨 플러그인
         const dataLabelsPlugin = {
             id: 'dataLabelsPlugin',
             afterDatasetsDraw(chart, args, pluginOptions) {
@@ -300,11 +286,11 @@
                     if (!meta.hidden) {
                         meta.data.forEach((element, index) => {
                             ctx.fillStyle = '#2c3e50';
-                            ctx.font = 'bold 11px "Malgun Gothic", sans-serif'; // 모바일 가독성을 위해 크기 소폭 축소
+                            ctx.font = 'bold 12px "Malgun Gothic", sans-serif'; 
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'bottom';
                             const dataString = dataset.data[index].toString();
-                            ctx.fillText(dataString, element.x, element.y - 8);
+                            ctx.fillText(dataString, element.x, element.y - 10);
                         });
                     }
                 });
@@ -377,7 +363,6 @@
             reader.onload = function(event) {
                 const img = new Image();
                 img.onload = function() {
-                    // 고해상도 이미지 종횡비 유지 스케일링
                     canvas.width = img.width > 600 ? 600 : img.width;
                     canvas.height = img.height * (canvas.width / img.width);
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -387,16 +372,13 @@
             reader.readAsDataURL(images[currentIndex]);
         }
 
-        // 클릭/터치 이벤트 통합 처리
         canvas.addEventListener('click', (e) => {
             if(currentIndex >= images.length) return;
 
             const rect = canvas.getBoundingClientRect();
-            // 모바일 반응형 크기 변화 비율을 정밀하게 보정하여 매핑
             const x = (e.clientX - rect.left) * (canvas.width / rect.width);
             const y = (e.clientY - rect.top) * (canvas.height / rect.height);
 
-            // 안전 경계 처리
             const targetX = Math.max(0, Math.min(canvas.width - 1, Math.round(x)));
             const targetY = Math.max(0, Math.min(canvas.height - 1, Math.round(y)));
 
@@ -421,7 +403,6 @@
             records.forEach(rec => {
                 dataLog.innerHTML += `시간: <b>${rec.timeLabel}</b> | <span style="color:#dc3545;">R:${rec.r}</span> <span style="color:#28a745;">G:${rec.g}</span> <span style="color:#007bff;">B:${rec.b}</span><br>`;
             });
-            // 최신 로그를 상단에 보여주기 위해 스크롤 최하단 이동
             dataLog.scrollTop = dataLog.scrollHeight;
 
             const hasData = records.length > 0;
@@ -448,8 +429,8 @@
                             borderColor: colorHex,
                             backgroundColor: colorHex + '22', 
                             borderWidth: 2,
-                            pointRadius: 5,
-                            pointHoverRadius: 7,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
                             pointBackgroundColor: colorHex,
                             fill: true,
                             tension: 0.1
@@ -457,20 +438,21 @@
                     },
                     options: {
                         responsive: true,
-                        maintainAspectRatio: false, /* 모바일 가로-세로 가변 스케일 최적화 */
-                        layout: { padding: { top: 20, right: 10 } },
+                        // 🌟 핵심 교정 파트 1: 차트의 높이 강제 제한을 없애고, 가로세로 비율(aspectRatio)을 적절하게 잡아줍니다.
+                        maintainAspectRatio: true, 
+                        aspectRatio: 2.2, 
+                        layout: { padding: { top: 30, right: 15, left: 10 } },
                         plugins: {
                             customCanvasBackgroundColor: { color: 'white' },
-                            legend: { labels: { boxWidth: 12, font: { size: 11 } } }
+                            legend: { labels: { boxWidth: 12, font: { size: 12 } } }
                         },
                         scales: {
                             y: { 
-                                beginAtZero: true, 
-                                max: 255,
-                                ticks: { font: { size: 10 } }
+                                // 🌟 핵심 교정 파트 2: beginAtZero와 max 값을 지워서, 데이터에 맞게 돋보기처럼 확대되도록 오토스케일링 적용
+                                ticks: { font: { size: 11 } }
                             },
                             x: {
-                                ticks: { font: { size: 10 } }
+                                ticks: { font: { size: 11 } }
                             }
                         }
                     },
@@ -485,8 +467,7 @@
             const gData = records.map(r => r.g);
             const bData = records.map(r => r.b);
 
-            // 모바일 화면 비율을 고려해 캔버스 컨테이너 높이 강제 설정
-            document.querySelectorAll('.chart-box canvas').forEach(c => c.style.height = '180px');
+            // 강제로 높이를 누르던 코드를 삭제하여 차트가 예쁘게 늘어나도록 변경했습니다.
 
             chartR = createOrUpdateChart(chartR, 'chartR', labels, rData, 'Red', '#dc3545');
             chartG = createOrUpdateChart(chartG, 'chartG', labels, gData, 'Green', '#28a745');
