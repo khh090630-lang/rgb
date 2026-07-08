@@ -136,9 +136,9 @@
         let images = [];
         let currentIndex = 0;
         let chart = null;
-        let records = []; // 추출된 데이터를 객체로 저장하는 배열
+        let records = []; 
 
-        // 차트 배경을 흰색으로 만들어주는 플러그인 (다운로드 시 투명 배경 방지)
+        // 🌟 기능 추가: 차트 배경을 흰색으로 만들어주는 플러그인
         const customCanvasBackgroundColor = {
             id: 'customCanvasBackgroundColor',
             beforeDraw: (chart, args, options) => {
@@ -148,6 +148,32 @@
                 ctx.fillStyle = options.color || '#ffffff';
                 ctx.fillRect(0, 0, chart.width, chart.height);
                 ctx.restore();
+            }
+        };
+
+        // 🌟 기능 추가: 데이터 포인트 위에 숫자를 직접 그려주는 플러그인
+        const dataLabelsPlugin = {
+            id: 'dataLabelsPlugin',
+            afterDatasetsDraw(chart, args, pluginOptions) {
+                const { ctx } = chart;
+                chart.data.datasets.forEach((dataset, i) => {
+                    const meta = chart.getDatasetMeta(i);
+                    if (!meta.hidden) {
+                        meta.data.forEach((element, index) => {
+                            // 숫자 텍스트 스타일 설정
+                            ctx.fillStyle = '#2c3e50';
+                            ctx.font = 'bold 13px "Malgun Gothic", sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'bottom';
+                            
+                            // G값 텍스트 가져오기
+                            const dataString = dataset.data[index].toString();
+                            
+                            // 점(Point)보다 위쪽(y - 12)에 글씨 쓰기
+                            ctx.fillText(dataString, element.x, element.y - 12);
+                        });
+                    }
+                });
             }
         };
 
@@ -162,7 +188,7 @@
         function startProcess() {
             currentIndex = 0;
             records = [];
-            intervalInput.disabled = true; // 분석 중에는 간격 수정 불가
+            intervalInput.disabled = true; 
             
             if(chart) {
                 chart.destroy();
@@ -174,7 +200,7 @@
 
         // 3. 완전히 처음부터 다시 하기 버튼
         resetBtn.addEventListener('click', () => {
-            input.value = ""; // 파일 입력 초기화
+            input.value = ""; 
             images = [];
             currentIndex = 0;
             records = [];
@@ -191,11 +217,11 @@
         // 4. 실행 취소 (이전 단계로) 버튼
         undoBtn.addEventListener('click', () => {
             if(records.length > 0) {
-                records.pop(); // 마지막 데이터 삭제
-                currentIndex--; // 인덱스 되돌리기
+                records.pop(); 
+                currentIndex--; 
                 updateLogAndButtons();
                 updateChart();
-                loadNextImage(); // 이전 사진 다시 불러오기
+                loadNextImage(); 
             }
         });
 
@@ -261,9 +287,7 @@
                 dataLog.innerHTML += `시간: <b>${rec.timeLabel}</b> | R: ${rec.r}, <b>G: <span style="color:green">${rec.g}</span></b>, B: ${rec.b}<br>`;
             });
 
-            // 데이터가 1개 이상이면 실행 취소 버튼 활성화
             undoBtn.disabled = records.length === 0;
-            // 데이터가 1개 이상이면 다운로드 버튼 활성화
             downloadBtn.disabled = records.length === 0;
         }
 
@@ -297,6 +321,10 @@
                     },
                     options: {
                         responsive: true,
+                        layout: {
+                            // 숫자 글씨가 그래프 맨 위쪽 선을 넘어가지 않도록 여백 추가
+                            padding: { top: 25 }
+                        },
                         plugins: {
                             customCanvasBackgroundColor: { color: 'white' }
                         },
@@ -311,7 +339,8 @@
                             }
                         }
                     },
-                    plugins: [customCanvasBackgroundColor]
+                    // 플러그인 배열에 숫자 표시 플러그인(dataLabelsPlugin) 추가!
+                    plugins: [customCanvasBackgroundColor, dataLabelsPlugin] 
                 });
             }
         }
@@ -319,7 +348,6 @@
         // 9. 그래프 이미지로 다운로드 하는 기능
         downloadBtn.addEventListener('click', () => {
             if(!chart) return;
-            // 차트 캔버스 요소를 base64 이미지 데이터로 변환
             const imgURL = document.getElementById('resultChart').toDataURL('image/png');
             const link = document.createElement('a');
             link.href = imgURL;
