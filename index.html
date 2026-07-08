@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>효소 반응 RGB 정밀 분석기 (비율 최적화)</title>
+    <title>효소 반응 RGB 정밀 분석기 (100단위 스케일)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -189,7 +189,7 @@
         <strong>[모바일 사용 방법]</strong><br>
         1. <b>촬영 간격</b>을 입력하고 사진들을 한 번에 선택하세요.<br>
         2. 화면에 뜨는 사진 속 <b>시험관 중심을 손가락으로 터치</b>하세요.<br>
-        3. 터치할 때마다 데이터가 돋보기처럼 확대되어 실시간 업데이트됩니다.
+        3. 터치할 때마다 Y축이 100 단위의 배수 구간으로 자동 정렬됩니다.
     </div>
 
     <div class="container">
@@ -411,10 +411,35 @@
             singleDlBtns.forEach(btn => btn.disabled = !hasData);
         }
 
+        // 🌟 핵심 로직: 데이터를 분석하여 100 단위의 Y축 Min/Max 값을 계산하는 함수
+        function calculateYAxisBounds(dataArray) {
+            if (dataArray.length === 0) return { min: 0, max: 100 };
+            
+            const minVal = Math.min(...dataArray);
+            const maxVal = Math.max(...dataArray);
+            
+            // 내림과 올림을 사용하여 100단위 배수 찾기 (예: 47 -> min:0, 55 -> max:100)
+            let yMin = Math.floor(minVal / 100) * 100;
+            let yMax = Math.ceil(maxVal / 100) * 100;
+            
+            // 만약 최솟값과 최댓값이 완전히 동일하거나, 간격이 0인 경우를 방지
+            if (yMin === yMax) {
+                yMax += 100;
+            }
+            
+            return { min: yMin, max: yMax };
+        }
+
         function createOrUpdateChart(chartObj, canvasId, labels, data, labelName, colorHex) {
+            // Y축 100 단위 바운더리 동적 계산
+            const bounds = calculateYAxisBounds(data);
+
             if(chartObj) {
                 chartObj.data.labels = labels;
                 chartObj.data.datasets[0].data = data;
+                // 차트 업데이트 시 동적 Min/Max 적용
+                chartObj.options.scales.y.min = bounds.min;
+                chartObj.options.scales.y.max = bounds.max;
                 chartObj.update();
                 return chartObj;
             } else {
@@ -438,7 +463,6 @@
                     },
                     options: {
                         responsive: true,
-                        // 🌟 핵심 교정 파트 1: 차트의 높이 강제 제한을 없애고, 가로세로 비율(aspectRatio)을 적절하게 잡아줍니다.
                         maintainAspectRatio: true, 
                         aspectRatio: 2.2, 
                         layout: { padding: { top: 30, right: 15, left: 10 } },
@@ -448,7 +472,9 @@
                         },
                         scales: {
                             y: { 
-                                // 🌟 핵심 교정 파트 2: beginAtZero와 max 값을 지워서, 데이터에 맞게 돋보기처럼 확대되도록 오토스케일링 적용
+                                // 초기 생성 시 계산된 100 단위 Min/Max 적용
+                                min: bounds.min,
+                                max: bounds.max,
                                 ticks: { font: { size: 11 } }
                             },
                             x: {
@@ -466,8 +492,6 @@
             const rData = records.map(r => r.r);
             const gData = records.map(r => r.g);
             const bData = records.map(r => r.b);
-
-            // 강제로 높이를 누르던 코드를 삭제하여 차트가 예쁘게 늘어나도록 변경했습니다.
 
             chartR = createOrUpdateChart(chartR, 'chartR', labels, rData, 'Red', '#dc3545');
             chartG = createOrUpdateChart(chartG, 'chartG', labels, gData, 'Green', '#28a745');
