@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>효소 반응 RGB 데이터 분석기</title>
+    <title>효소 반응 RGB 데이터 분석기 (Pro버전)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -25,20 +25,41 @@
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             flex: 1;
-            min-width: 300px;
+            min-width: 350px;
         }
         canvas {
             border: 1px dashed #aaa;
-            cursor: crosshair; /* 마우스를 올리면 십자 모양으로 변경 */
+            cursor: crosshair; 
             max-width: 100%;
             border-radius: 5px;
+            background-color: white;
         }
-        input[type="file"] {
+        .controls {
             margin-bottom: 20px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            padding: 15px;
+            background-color: #e3f2fd;
+            border-radius: 8px;
+            border: 1px solid #90caf9;
         }
+        .controls input[type="file"] { margin-bottom: 15px; display: block; }
+        .btn {
+            padding: 8px 15px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; color: #666; }
+        .btn-undo { background-color: #ffc107; color: #000; }
+        .btn-undo:hover:not(:disabled) { background-color: #e0a800; }
+        .btn-reset { background-color: #dc3545; color: #fff; }
+        .btn-reset:hover { background-color: #c82333; }
+        .btn-download { background-color: #28a745; color: #fff; }
+        .btn-download:hover:not(:disabled) { background-color: #218838; }
+        
         .instruction {
             background-color: #e9ecef;
             padding: 15px;
@@ -48,6 +69,17 @@
         #dataLog {
             margin-top: 20px;
             font-size: 14px;
+            line-height: 1.6;
+        }
+        .time-setting {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #0056b3;
+        }
+        .time-setting input {
+            width: 50px;
+            text-align: center;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -56,19 +88,33 @@
     <h2>🧪 효소 반응 RGB 데이터 자동 분석기</h2>
     <div class="instruction">
         <strong>[사용 방법]</strong><br>
-        1. [파일 선택]을 눌러 0분부터 5분까지 촬영한 사진 6장을 한 번에 모두 선택하세요.<br>
-        2. 아래에 첫 번째(0분) 사진이 뜨면, 분석할 <b>시험관 용액의 정중앙을 마우스로 클릭</b>하세요.<br>
-        3. 클릭할 때마다 자동으로 다음 시간대 사진으로 넘어가며, G(Green) 값 그래프가 그려집니다.
+        1. <b>촬영 간격(분)</b>을 먼저 설정하세요.<br>
+        2. [파일 선택]을 눌러 시간 순서대로 촬영한 실험 사진들을 한 번에 모두 선택하세요.<br>
+        3. 아래에 첫 번째 사진이 뜨면, 분석할 <b>시험관 용액의 정중앙을 마우스로 클릭</b>하세요.<br>
+        4. 잘못 클릭했다면 [실행 취소]를 누르고, 분석이 끝나면 [그래프 저장]을 누르세요.
     </div>
 
     <div class="container">
         <div class="left-panel">
-            <input type="file" id="imageInput" accept="image/*" multiple>
+            <div class="controls">
+                <div class="time-setting">
+                    <label for="intervalInput">⏱️ 사진 1장당 촬영 간격: </label>
+                    <input type="number" id="intervalInput" value="1" min="1"> 분
+                </div>
+                <input type="file" id="imageInput" accept="image/*" multiple>
+                
+                <button id="undoBtn" class="btn btn-undo" disabled>↩ 이전 사진으로 (실행 취소)</button>
+                <button id="resetBtn" class="btn btn-reset">🔄 처음부터 다시 하기</button>
+            </div>
+            
             <h3 id="imageStatus" style="color: #007bff;">사진을 업로드해주세요</h3>
             <canvas id="imageCanvas"></canvas>
         </div>
 
         <div class="right-panel">
+            <div style="text-align: right; margin-bottom: 10px;">
+                <button id="downloadBtn" class="btn btn-download" disabled>💾 그래프 이미지로 저장</button>
+            </div>
             <canvas id="resultChart"></canvas>
             <div id="dataLog"></div>
         </div>
@@ -76,49 +122,105 @@
 
     <script>
         const input = document.getElementById('imageInput');
+        const intervalInput = document.getElementById('intervalInput');
         const canvas = document.getElementById('imageCanvas');
         const ctx = canvas.getContext('2d');
         const status = document.getElementById('imageStatus');
         const dataLog = document.getElementById('dataLog');
+        
+        // 버튼 요소
+        const undoBtn = document.getElementById('undoBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
 
         let images = [];
         let currentIndex = 0;
         let chart = null;
+        let records = []; // 추출된 데이터를 객체로 저장하는 배열
 
-        // 그래프에 들어갈 데이터 배열
-        let times = [];
-        let gValues = [];
+        // 차트 배경을 흰색으로 만들어주는 플러그인 (다운로드 시 투명 배경 방지)
+        const customCanvasBackgroundColor = {
+            id: 'customCanvasBackgroundColor',
+            beforeDraw: (chart, args, options) => {
+                const {ctx} = chart;
+                ctx.save();
+                ctx.globalCompositeOperation = 'destination-over';
+                ctx.fillStyle = options.color || '#ffffff';
+                ctx.fillRect(0, 0, chart.width, chart.height);
+                ctx.restore();
+            }
+        };
 
-        // 1. 파일이 업로드되었을 때 실행되는 함수
+        // 1. 파일 업로드 이벤트
         input.addEventListener('change', (e) => {
+            if(e.target.files.length === 0) return;
             images = Array.from(e.target.files);
-            currentIndex = 0;
-            times = [];
-            gValues = [];
-            dataLog.innerHTML = "<h4>📝 추출된 데이터</h4>";
-            
-            if(chart) chart.destroy(); // 기존 그래프 초기화
-            if(images.length > 0) loadNextImage();
+            startProcess();
         });
 
-        // 2. 이미지를 캔버스에 그리는 함수
+        // 2. 초기화 및 시작 함수
+        function startProcess() {
+            currentIndex = 0;
+            records = [];
+            intervalInput.disabled = true; // 분석 중에는 간격 수정 불가
+            
+            if(chart) {
+                chart.destroy();
+                chart = null;
+            }
+            updateLogAndButtons();
+            loadNextImage();
+        }
+
+        // 3. 완전히 처음부터 다시 하기 버튼
+        resetBtn.addEventListener('click', () => {
+            input.value = ""; // 파일 입력 초기화
+            images = [];
+            currentIndex = 0;
+            records = [];
+            intervalInput.disabled = false;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            status.innerText = "사진을 업로드해주세요";
+            status.style.color = "#007bff";
+            
+            if(chart) { chart.destroy(); chart = null; }
+            updateLogAndButtons();
+        });
+
+        // 4. 실행 취소 (이전 단계로) 버튼
+        undoBtn.addEventListener('click', () => {
+            if(records.length > 0) {
+                records.pop(); // 마지막 데이터 삭제
+                currentIndex--; // 인덱스 되돌리기
+                updateLogAndButtons();
+                updateChart();
+                loadNextImage(); // 이전 사진 다시 불러오기
+            }
+        });
+
+        // 5. 이미지를 캔버스에 그리는 함수
         function loadNextImage() {
             if (currentIndex >= images.length) {
                 status.innerText = "✅ 모든 사진 분석이 완료되었습니다!";
                 status.style.color = "#28a745";
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.font = "20px Arial";
+                ctx.fillStyle = "#666";
+                ctx.textAlign = "center";
+                ctx.fillText("분석 종료", canvas.width/2, canvas.height/2);
                 return;
             }
 
-            status.innerText = `[${currentIndex}분 경과 사진] 시험관을 클릭하세요.`;
+            const currentMin = currentIndex * parseInt(intervalInput.value);
+            status.innerText = `[${currentMin}분 경과 사진] 시험관을 클릭하세요.`;
             status.style.color = "#dc3545";
             
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = new Image();
                 img.onload = function() {
-                    // 화면 크기에 맞게 이미지 리사이징
-                    canvas.width = img.width > 500 ? 500 : img.width;
+                    canvas.width = img.width > 600 ? 600 : img.width;
                     canvas.height = img.height * (canvas.width / img.width);
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 }
@@ -127,77 +229,103 @@
             reader.readAsDataURL(images[currentIndex]);
         }
 
-        // 3. 캔버스를 클릭했을 때 RGB 값 추출하는 함수
+        // 6. 캔버스를 클릭했을 때 RGB 값 추출하는 함수
         canvas.addEventListener('click', (e) => {
             if(currentIndex >= images.length) return;
 
-            // 클릭한 정확한 좌표 계산
             const rect = canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left) * (canvas.width / rect.width);
             const y = (e.clientY - rect.top) * (canvas.height / rect.height);
 
-            // 해당 좌표의 픽셀 데이터 가져오기
             const pixel = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
-            const rValue = pixel[0];
-            const gValue = pixel[1]; // 녹말-요오드 반응에서 가장 유의미한 G값 추출
-            const bValue = pixel[2];
+            const timeVal = currentIndex * parseInt(intervalInput.value);
 
-            // 배열에 데이터 추가
-            times.push(`${currentIndex}분`);
-            gValues.push(gValue);
+            // 데이터 기록
+            records.push({
+                timeLabel: `${timeVal}분`,
+                r: pixel[0],
+                g: pixel[1],
+                b: pixel[2]
+            });
 
-            // 텍스트로 데이터 기록 남기기
-            dataLog.innerHTML += `시간: <b>${currentIndex}분</b> | R: ${rValue}, <b>G: <span style="color:green">${gValue}</span></b>, B: ${bValue}<br>`;
-
-            // 그래프 업데이트 및 다음 사진으로 넘어가기
-            updateChart();
             currentIndex++;
+            updateLogAndButtons();
+            updateChart();
             loadNextImage();
         });
 
-        // 4. Chart.js를 이용해 꺾은선 그래프를 그리는 함수
+        // 7. 로그 창 텍스트 갱신 및 버튼 활성화 관리
+        function updateLogAndButtons() {
+            dataLog.innerHTML = "<h4>📝 추출된 데이터</h4>";
+            records.forEach(rec => {
+                dataLog.innerHTML += `시간: <b>${rec.timeLabel}</b> | R: ${rec.r}, <b>G: <span style="color:green">${rec.g}</span></b>, B: ${rec.b}<br>`;
+            });
+
+            // 데이터가 1개 이상이면 실행 취소 버튼 활성화
+            undoBtn.disabled = records.length === 0;
+            // 데이터가 1개 이상이면 다운로드 버튼 활성화
+            downloadBtn.disabled = records.length === 0;
+        }
+
+        // 8. Chart.js 그래프 그리기 및 업데이트
         function updateChart() {
-            const ctxChart = document.getElementById('resultChart').getContext('2d');
+            const labels = records.map(r => r.timeLabel);
+            const gData = records.map(r => r.g);
             
             if(chart) {
-                // 이미 그래프가 있으면 데이터만 갱신
-                chart.data.labels = times;
-                chart.data.datasets[0].data = gValues;
+                chart.data.labels = labels;
+                chart.data.datasets[0].data = gData;
                 chart.update();
             } else {
-                // 그래프 처음 생성
+                const ctxChart = document.getElementById('resultChart').getContext('2d');
                 chart = new Chart(ctxChart, {
                     type: 'line',
                     data: {
-                        labels: times,
+                        labels: labels,
                         datasets: [{
                             label: '요오드 용액 색상(Green) 변화',
-                            data: gValues,
+                            data: gData,
                             borderColor: '#28a745',
                             backgroundColor: 'rgba(40, 167, 69, 0.2)',
                             borderWidth: 2,
-                            pointRadius: 5,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
                             pointBackgroundColor: '#28a745',
                             fill: true,
-                            tension: 0.1 // 꺾은선 부드럽게
+                            tension: 0.1
                         }]
                     },
                     options: {
                         responsive: true,
+                        plugins: {
+                            customCanvasBackgroundColor: { color: 'white' }
+                        },
                         scales: {
                             y: { 
                                 beginAtZero: true, 
                                 max: 255,
-                                title: { display: true, text: 'Green 픽셀 값 (0~255)' }
+                                title: { display: true, text: 'Green 픽셀 값 (0~255)', font: {weight: 'bold'} }
                             },
                             x: {
-                                title: { display: true, text: '경과 시간 (분)' }
+                                title: { display: true, text: '경과 시간', font: {weight: 'bold'} }
                             }
                         }
-                    }
+                    },
+                    plugins: [customCanvasBackgroundColor]
                 });
             }
         }
+
+        // 9. 그래프 이미지로 다운로드 하는 기능
+        downloadBtn.addEventListener('click', () => {
+            if(!chart) return;
+            // 차트 캔버스 요소를 base64 이미지 데이터로 변환
+            const imgURL = document.getElementById('resultChart').toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = imgURL;
+            link.download = '효소반응그래프_데이터.png';
+            link.click();
+        });
     </script>
 </body>
 </html>
