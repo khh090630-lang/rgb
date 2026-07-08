@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>효소 반응 RGB 정밀 분석기</title>
+    <title>효소 반응 RGB 정밀 분석기 (동적 시간 변경)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -187,9 +187,10 @@
     <h2>🧪 효소 반응 RGB 3채널 정밀 분석기</h2>
     <div class="instruction">
         <strong>[모바일 사용 방법]</strong><br>
-        1. <b>촬영 간격</b>을 입력하고 사진들을 한 번에 선택하세요.<br>
+        1. 사진들을 한 번에 선택하세요.<br>
         2. 화면에 뜨는 사진 속 <b>시험관 중심을 손가락으로 터치</b>하세요.<br>
-        3. 터치할 때마다 Y축이 100 단위의 배수 구간으로 자동 정렬됩니다.
+        3. 터치할 때마다 Y축이 100 단위 배수 구간으로 자동 정렬됩니다.<br>
+        4. <b>촬영 간격(분)</b>은 분석 중 언제든지 자유롭게 수정할 수 있습니다.
     </div>
 
     <div class="container">
@@ -297,6 +298,22 @@
             }
         };
 
+        // 🌟 실시간 시간 간격 수정 이벤트
+        // 숫자를 바꿀 때마다 데이터 로그와 그래프의 X축이 즉시 갱신됩니다.
+        intervalInput.addEventListener('input', () => {
+            if (images.length > 0) {
+                updateLogAndButtons();
+                updateAllCharts();
+                
+                // 현재 분석을 기다리고 있는 사진의 안내 문구 시간도 즉시 업데이트
+                if (currentIndex < images.length) {
+                    const interval = parseInt(intervalInput.value) || 1;
+                    const currentMin = currentIndex * interval;
+                    status.innerText = `[${currentMin}분 사진] 시험관 중심을 터치하세요.`;
+                }
+            }
+        });
+
         input.addEventListener('change', (e) => {
             if(e.target.files.length === 0) return;
             images = Array.from(e.target.files);
@@ -306,7 +323,7 @@
         function startProcess() {
             currentIndex = 0;
             records = [];
-            intervalInput.disabled = true; 
+            // intervalInput.disabled = true; <-- 삭제됨: 언제든지 수정 가능!
             
             if(chartR) { chartR.destroy(); chartR = null; }
             if(chartG) { chartG.destroy(); chartG = null; }
@@ -321,7 +338,6 @@
             images = [];
             currentIndex = 0;
             records = [];
-            intervalInput.disabled = false;
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             status.innerText = "사진을 업로드해주세요";
@@ -355,7 +371,8 @@
                 return;
             }
 
-            const currentMin = currentIndex * parseInt(intervalInput.value);
+            const interval = parseInt(intervalInput.value) || 1;
+            const currentMin = currentIndex * interval;
             status.innerText = `[${currentMin}분 사진] 시험관 중심을 터치하세요.`;
             status.style.color = "#dc3545";
             
@@ -383,10 +400,9 @@
             const targetY = Math.max(0, Math.min(canvas.height - 1, Math.round(y)));
 
             const pixel = ctx.getImageData(targetX, targetY, 1, 1).data;
-            const timeVal = currentIndex * parseInt(intervalInput.value);
 
+            // 시간(분) 정보를 고정 텍스트로 저장하지 않고 RGB 값만 저장합니다.
             records.push({
-                timeLabel: `${timeVal}분`,
                 r: pixel[0],
                 g: pixel[1],
                 b: pixel[2]
@@ -399,9 +415,13 @@
         });
 
         function updateLogAndButtons() {
+            const interval = parseInt(intervalInput.value) || 1;
+            
             dataLog.innerHTML = "<h4>📝 데이터 로그</h4>";
-            records.forEach(rec => {
-                dataLog.innerHTML += `시간: <b>${rec.timeLabel}</b> | <span style="color:#dc3545;">R:${rec.r}</span> <span style="color:#28a745;">G:${rec.g}</span> <span style="color:#007bff;">B:${rec.b}</span><br>`;
+            // 실시간 간격(interval)을 바탕으로 시간 계산 적용
+            records.forEach((rec, idx) => {
+                const timeLabel = `${idx * interval}분`;
+                dataLog.innerHTML += `시간: <b>${timeLabel}</b> | <span style="color:#dc3545;">R:${rec.r}</span> <span style="color:#28a745;">G:${rec.g}</span> <span style="color:#007bff;">B:${rec.b}</span><br>`;
             });
             dataLog.scrollTop = dataLog.scrollHeight;
 
@@ -411,18 +431,15 @@
             singleDlBtns.forEach(btn => btn.disabled = !hasData);
         }
 
-        // 🌟 핵심 로직: 데이터를 분석하여 100 단위의 Y축 Min/Max 값을 계산하는 함수
         function calculateYAxisBounds(dataArray) {
             if (dataArray.length === 0) return { min: 0, max: 100 };
             
             const minVal = Math.min(...dataArray);
             const maxVal = Math.max(...dataArray);
             
-            // 내림과 올림을 사용하여 100단위 배수 찾기 (예: 47 -> min:0, 55 -> max:100)
             let yMin = Math.floor(minVal / 100) * 100;
             let yMax = Math.ceil(maxVal / 100) * 100;
             
-            // 만약 최솟값과 최댓값이 완전히 동일하거나, 간격이 0인 경우를 방지
             if (yMin === yMax) {
                 yMax += 100;
             }
@@ -431,13 +448,11 @@
         }
 
         function createOrUpdateChart(chartObj, canvasId, labels, data, labelName, colorHex) {
-            // Y축 100 단위 바운더리 동적 계산
             const bounds = calculateYAxisBounds(data);
 
             if(chartObj) {
                 chartObj.data.labels = labels;
                 chartObj.data.datasets[0].data = data;
-                // 차트 업데이트 시 동적 Min/Max 적용
                 chartObj.options.scales.y.min = bounds.min;
                 chartObj.options.scales.y.max = bounds.max;
                 chartObj.update();
@@ -472,7 +487,6 @@
                         },
                         scales: {
                             y: { 
-                                // 초기 생성 시 계산된 100 단위 Min/Max 적용
                                 min: bounds.min,
                                 max: bounds.max,
                                 ticks: { font: { size: 11 } }
@@ -488,7 +502,10 @@
         }
 
         function updateAllCharts() {
-            const labels = records.map(r => r.timeLabel);
+            const interval = parseInt(intervalInput.value) || 1;
+            
+            // X축 라벨도 실시간으로 수정된 interval을 반영하여 배열 생성
+            const labels = records.map((r, idx) => `${idx * interval}분`);
             const rData = records.map(r => r.r);
             const gData = records.map(r => r.g);
             const bData = records.map(r => r.b);
