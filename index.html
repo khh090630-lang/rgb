@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>효소 반응 RGB 분석기</title>
+    <title>효소 반응 RGB 다중 정밀 분석기</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -254,7 +254,7 @@
 
         <div class="right-panel">
             <div class="filter-box">
-                <div class="filter-title">🔍 화면에 나타낼 그래프 선택</div>
+                <div class="filter-title">🔍 화면에 나타낼 그래프 선택 (2개 이상 선택 시 자동으로 겹쳐보임)</div>
                 <div id="checkboxGroup" class="checkbox-group">
                     <span style="color:#94a3b8; font-size:13px;">추출 완료된 데이터셋이 없습니다.</span>
                 </div>
@@ -314,16 +314,15 @@
         let chartG = null;
         let chartB = null;
 
-        // 🌟 핵심 개편: 각 시험관에 부여할 뚜렷한 고유 색상(Identity Color) 리스트
         const colorPalette = [
-            '#e6194b', // 빨강 (1번 시험관)
-            '#f58231', // 주황 (2번 시험관)
-            '#ffe119', // 노랑 (3번 시험관)
-            '#3cb44b', // 초록 (4번 시험관)
-            '#4363d8', // 파랑 (5번 시험관)
-            '#911eb4', // 보라 (6번 시험관)
-            '#46f0f0', // 시안 (7번 시험관)
-            '#f032e6'  // 분홍 (8번 시험관)
+            '#e6194b', 
+            '#f58231', 
+            '#ffe119', 
+            '#3cb44b', 
+            '#4363d8', 
+            '#911eb4', 
+            '#46f0f0', 
+            '#f032e6'  
         ];
 
         const customCanvasBackgroundColor = {
@@ -416,7 +415,7 @@
                 currentTubeRecords.pop(); 
                 currentIndex--; 
                 updateLogView();
-                updateAllCharts(); // 실행 취소 시 그래프도 즉시 복구 반영
+                updateAllCharts(); 
                 loadNextImage(); 
             }
         });
@@ -437,7 +436,6 @@
             
             alert(`[${tubeLabel}] 데이터셋 보관 완료! 다음 시험관 조준을 시작하세요.`);
             
-            // 이름 지정 후 체크박스 필터를 생성하고 전체 차트 갱신
             buildFilterCheckboxes();
             updateAllCharts();
             updateLogView();
@@ -485,7 +483,6 @@
                     updateAllCharts(); 
                 });
                 
-                // 체크박스 옆에 색상 표시용 원 추가
                 const colorDot = document.createElement('span');
                 const strokeColor = colorPalette[index % colorPalette.length];
                 colorDot.style.display = 'inline-block';
@@ -551,7 +548,7 @@
 
             currentIndex++;
             updateLogView();
-            updateAllCharts(); // 터치할 때마다 그래프에 즉시 반영
+            updateAllCharts(); 
             loadNextImage();
         });
 
@@ -579,11 +576,9 @@
             completeBtn.disabled = (allTubesData.length === 0 && currentTubeRecords.length !== images.length);
         }
 
-        // 🌟 핵심 개편 1: R, G, B 모든 데이터를 통틀어 단 하나의 전역(Global) Y축 범위를 계산하는 함수
         function getGlobalYAxisBounds() {
             let allNumbers = [];
 
-            // 1. 체크박스로 선택된 완료 데이터 모으기
             const checkedBoxes = checkboxGroup.querySelectorAll('input[type="checkbox"]:checked');
             if (checkedBoxes.length > 0) {
                 const checkedIndexes = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
@@ -594,7 +589,6 @@
                 });
             }
 
-            // 2. 현재 수집 중인 임시 데이터도 모으기 (실시간 반영용)
             if (currentTubeRecords.length > 0) {
                 currentTubeRecords.forEach(rec => {
                     allNumbers.push(rec.r, rec.g, rec.b);
@@ -606,19 +600,15 @@
             const minVal = Math.min(...allNumbers);
             const maxVal = Math.max(...allNumbers);
 
-            // 10단위로 내림 및 올림 (예: 42 -> 40, 68 -> 70)
             let yMin = Math.floor(minVal / 10) * 10;
             let yMax = Math.ceil(maxVal / 10) * 10;
 
-            // 값이 정확히 10단위로 떨어질 경우 위아래 10 여유공간 부여 (예: 70 -> 80)
             if (yMin === minVal) yMin -= 10;
             if (yMax === maxVal) yMax += 10;
 
-            // RGB 한계값(0~255)을 초과하지 않도록 보정
             if (yMin < 0) yMin = 0;
             if (yMax > 255) yMax = 255;
 
-            // 최소/최대값이 같을 경우의 예외 처리
             if (yMin === yMax) {
                 yMin = Math.max(0, yMin - 10);
                 yMax = Math.min(255, yMax + 10);
@@ -627,19 +617,15 @@
             return { min: yMin, max: yMax };
         }
 
-        // 🌟 핵심 개편 2: 선택된 시험관과 현재 분석 중인 시험관을 통합하여 데이터셋 생성
         function getActiveDatasets(channelKey) {
             const datasets = [];
 
-            // 1. 체크된 보관 시험관 데이터셋
             const checkedBoxes = checkboxGroup.querySelectorAll('input[type="checkbox"]:checked');
             if (checkedBoxes.length > 0) {
                 const checkedIndexes = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
                 checkedIndexes.forEach((tubeIdx) => {
                     const tube = allTubesData[tubeIdx];
                     const data = tube.records.map(r => r[channelKey]);
-                    
-                    // R, G, B 채널에 상관없이 무조건 시험관 고유의 색상 부여
                     const strokeColor = colorPalette[tubeIdx % colorPalette.length];
 
                     datasets.push({
@@ -657,11 +643,10 @@
                 });
             }
 
-            // 2. 현재 수집 중인 시험관의 임시 데이터셋 (실시간 점선 표시)
             if (currentTubeRecords.length > 0) {
                 const data = currentTubeRecords.map(r => r[channelKey]);
                 const nextIdx = allTubesData.length;
-                const strokeColor = colorPalette[nextIdx % colorPalette.length]; // 다음 순번 색상 미리보기
+                const strokeColor = colorPalette[nextIdx % colorPalette.length];
 
                 datasets.push({
                     label: `분석 진행중 (시험관 ${nextIdx + 1})`,
@@ -672,7 +657,7 @@
                     pointRadius: 5,
                     pointHoverRadius: 7,
                     pointBackgroundColor: strokeColor,
-                    borderDash: [5, 5], // 임시 데이터임을 나타내는 점선
+                    borderDash: [5, 5], 
                     fill: false, 
                     tension: 0.1
                 });
@@ -684,12 +669,20 @@
         function createOrUpdateMultiChart(chartObj, canvasId, labels, channelKey, globalBounds) {
             const datasets = getActiveDatasets(channelKey);
 
+            // 🌟 캔버스 이미지 출력 시 상단에 고정 표시될 네임태그 제목 결정 로직
+            let titleText = '';
+            let titleColor = '';
+            if (channelKey === 'r') { titleText = '🔴 R (Red) 채널 다중 변화 그래프'; titleColor = '#dc3545'; }
+            else if (channelKey === 'g') { titleText = '🟢 G (Green) 채널 다중 변화 그래프'; titleColor = '#28a745'; }
+            else if (channelKey === 'b') { titleText = '🔵 B (Blue) 채널 다중 변화 그래프'; titleColor = '#007bff'; }
+
             if(chartObj) {
                 chartObj.data.labels = labels;
                 chartObj.data.datasets = datasets;
-                // 세 그래프 모두 동일한 글로벌 범위 적용
                 chartObj.options.scales.y.min = globalBounds.min;
                 chartObj.options.scales.y.max = globalBounds.max;
+                // 차트가 이미 존재할 때도 내부 타이틀 텍스트를 최신 상태로 유지 보존
+                chartObj.options.plugins.title.text = titleText;
                 chartObj.update();
                 return chartObj;
             } else {
@@ -701,13 +694,20 @@
                         responsive: true,
                         maintainAspectRatio: true, 
                         aspectRatio: 2.2, 
-                        layout: { padding: { top: 30, right: 15, left: 10 } },
+                        layout: { padding: { top: 15, right: 15, left: 10, bottom: 5 } },
                         plugins: {
                             customCanvasBackgroundColor: { color: 'white' },
-                            legend: { display: true, labels: { boxWidth: 15, font: { size: 12, weight:'bold' } } }
+                            legend: { display: true, labels: { boxWidth: 15, font: { size: 12, weight:'bold' } } },
+                            // 🌟 핵심 수정 파트: 차트 자체에 타이틀 속성을 심어 내보낼 때 글자가 함께 지워지지 않도록 결합
+                            title: {
+                                display: true,
+                                text: titleText,
+                                color: titleColor,
+                                font: { size: 15, weight: 'bold', family: '"Malgun Gothic", sans-serif' },
+                                padding: { top: 10, bottom: 10 }
+                            }
                         },
                         scales: {
-                            // 세 그래프 모두 동일한 글로벌 범위 적용
                             y: { min: globalBounds.min, max: globalBounds.max, ticks: { font: { size: 11 } } },
                             x: { ticks: { font: { size: 11 } } }
                         }
@@ -720,15 +720,12 @@
         function updateAllCharts() {
             const interval = parseInt(intervalInput.value) || 1;
             
-            // X축은 업로드된 사진 장수만큼 유동적으로 라벨 생성
             const maxPoints = Math.max(
                 images.length, 
                 allTubesData.length > 0 ? allTubesData[0].records.length : 0, 
                 currentTubeRecords.length
             );
             const labels = Array.from({length: maxPoints}, (_, idx) => `${idx * interval}분`);
-
-            // 세 개의 그래프에 동일하게 적용할 글로벌 Y축(Min/Max) 계산
             const globalBounds = getGlobalYAxisBounds();
 
             chartR = createOrUpdateMultiChart(chartR, 'chartR', labels, 'r', globalBounds);
