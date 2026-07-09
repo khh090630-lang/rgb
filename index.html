@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>효소 반응 RGB 정밀 분석기 (동적 시간 변경)</title>
+    <title>효소 반응 RGB 다중 정밀 분석기</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -35,7 +35,7 @@
             gap: 16px;
         }
         
-        .left-panel, .chart-box, #dataLog {
+        .left-panel, .chart-box, #dataLog, .filter-box {
             background: white;
             padding: 16px;
             border-radius: 12px;
@@ -103,11 +103,13 @@
 
         .btn-group {
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
             width: 100%;
         }
         .btn {
             flex: 1;
+            min-width: 100px;
             padding: 12px 10px; 
             font-size: 13px;
             border: none;
@@ -119,6 +121,8 @@
         }
         .btn:disabled { background-color: #cbd5e1; cursor: not-allowed; color: #94a3b8; }
         .btn-undo { background-color: #ffc107; color: #000; }
+        .btn-next { background-color: #0d6efd; color: #fff; }
+        .btn-complete { background-color: #198754; color: #fff; }
         .btn-reset { background-color: #dc3545; color: #fff; }
         .btn-download { background-color: #28a745; color: #fff; }
         .btn-sm { padding: 8px 12px; font-size: 12px; flex: none; }
@@ -161,6 +165,37 @@
             overflow-y: auto; 
         }
 
+        /* 체크박스 영역 디자인 */
+        .filter-box {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .filter-title {
+            font-weight: bold;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            background: #f8fafc;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+        }
+        .checkbox-item input {
+            cursor: pointer;
+        }
+
         @media (min-width: 992px) {
             body { padding: 24px; }
             h2 { font-size: 24px; text-align: left; }
@@ -184,13 +219,13 @@
 </head>
 <body>
 
-    <h2>🧪 효소 반응 RGB 3채널 정밀 분석기</h2>
+    <h2>🧪 효소 반응 RGB 다중 시험관 분석기</h2>
     <div class="instruction">
-        <strong>[모바일 사용 방법]</strong><br>
-        1. 사진들을 한 번에 선택하세요.<br>
-        2. 화면에 뜨는 사진 속 <b>시험관 중심을 손가락으로 터치</b>하세요.<br>
-        3. 터치할 때마다 Y축이 100 단위 배수 구간으로 자동 정렬됩니다.<br>
-        4. <b>촬영 간격(분)</b>은 분석 중 언제든지 자유롭게 수정할 수 있습니다.
+        <strong>[다중 그래프 겹쳐보기 사용 방법]</strong><br>
+        1. 사진들을 한 번에 선택하여 업로드합니다.<br>
+        2. 첫 번째 시험관의 실시간 타임라인 터치를 완료하면 <b>[이름 설정 후 다음 그래프]</b> 버튼을 누르세요.<br>
+        3. 이름(예: pH 2)을 지정하면 사진이 다시 0분으로 세팅되며 다음 시험관 분석을 이어서 시작합니다.<br>
+        4. 모든 시험관 수집이 완료되면 <b>[분석 완료 및 시각화]</b>를 누르세요. 생성된 체크박스로 그래프를 선택 및 중첩 제어할 수 있습니다.
     </div>
 
     <div class="container">
@@ -204,6 +239,8 @@
                 
                 <div class="btn-group">
                     <button id="undoBtn" class="btn btn-undo" disabled>↩ 이전 사진</button>
+                    <button id="nextTubeBtn" class="btn btn-next" disabled>💾 이름 설정 후 다음 그래프</button>
+                    <button id="completeBtn" class="btn btn-complete" disabled>📊 분석 완료 및 시각화</button>
                     <button id="resetBtn" class="btn btn-reset">🔄 초기화</button>
                 </div>
             </div>
@@ -217,28 +254,35 @@
         </div>
 
         <div class="right-panel">
-            <button id="downloadAllBtn" class="btn btn-download-all" disabled>📥 모든 그래프 이미지 일괄 저장</button>
+            <div class="filter-box">
+                <div class="filter-title">🔍 화면에 나타낼 그래프 선택 (2개 이상 선택 시 자동으로 겹쳐보임)</div>
+                <div id="checkboxGroup" class="checkbox-group">
+                    <span style="color:#94a3b8; font-size:13px;">추출 완료된 데이터셋이 없습니다.</span>
+                </div>
+            </div>
+
+            <button id="downloadAllBtn" class="btn btn-download-all" disabled>📥 표시된 그래프 이미지 일괄 저장</button>
 
             <div class="chart-box">
                 <div class="chart-header">
-                    <h4 style="color: #dc3545;">🔴 R (Red) 채널 변화</h4>
-                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartR" data-name="Red_Graph" disabled>저장</button>
+                    <h4 style="color: #dc3545;">🔴 R (Red) 채널 다중 변화</h4>
+                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartR" data-name="Red_Multi_Graph" disabled>저장</button>
                 </div>
                 <canvas id="chartR" class="chart-canvas"></canvas>
             </div>
 
             <div class="chart-box">
                 <div class="chart-header">
-                    <h4 style="color: #28a745;">🟢 G (Green) 채널 변화</h4>
-                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartG" data-name="Green_Graph" disabled>저장</button>
+                    <h4 style="color: #28a745;">🟢 G (Green) 채널 다중 변화</h4>
+                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartG" data-name="Green_Multi_Graph" disabled>저장</button>
                 </div>
                 <canvas id="chartG" class="chart-canvas"></canvas>
             </div>
 
             <div class="chart-box">
                 <div class="chart-header">
-                    <h4 style="color: #007bff;">🔵 B (Blue) 채널 변화</h4>
-                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartB" data-name="Blue_Graph" disabled>저장</button>
+                    <h4 style="color: #007bff;">🔵 B (Blue) 채널 다중 변화</h4>
+                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartB" data-name="Blue_Multi_Graph" disabled>저장</button>
                 </div>
                 <canvas id="chartB" class="chart-canvas"></canvas>
             </div>
@@ -252,19 +296,35 @@
         const ctx = canvas.getContext('2d');
         const status = document.getElementById('imageStatus');
         const dataLog = document.getElementById('dataLog');
+        const checkboxGroup = document.getElementById('checkboxGroup');
         
         const undoBtn = document.getElementById('undoBtn');
+        const nextTubeBtn = document.getElementById('nextTubeBtn');
+        const completeBtn = document.getElementById('completeBtn');
         const resetBtn = document.getElementById('resetBtn');
         const downloadAllBtn = document.getElementById('downloadAllBtn');
         const singleDlBtns = document.querySelectorAll('.single-dl-btn');
 
         let images = [];
         let currentIndex = 0;
-        let records = []; 
         
+        // 현재 수집 중인 시험관의 임시 데이터 배열
+        let currentTubeRecords = []; 
+        
+        // 최종 완료되어 축적된 모든 시험관들의 전체 데이터 배열 저장소
+        let allTubesData = []; 
+
         let chartR = null;
         let chartG = null;
         let chartB = null;
+
+        // 그래프 라벨링용 고유 투명도 설정 색상 템플릿 그룹
+        const colorPalette = [
+            { r: '#dc3545', g: '#28a745', b: '#007bff' },  // 1번 세트 (기본 빨/초/파)
+            { r: '#fd7e14', g: '#20c997', b: '#6f42c1' },  // 2번 세트 (주황/민트/보라)
+            { r: '#b5179e', g: '#72efdd', b: '#3f37c9' },  // 3번 세트 (자주/청록/네이비)
+            { r: '#70e000', g: '#ff0a54', b: '#00b4d8' }   // 4번 세트 (연두/핫핑크/하늘)
+        ];
 
         const customCanvasBackgroundColor = {
             id: 'customCanvasBackgroundColor',
@@ -286,30 +346,26 @@
                     const meta = chart.getDatasetMeta(i);
                     if (!meta.hidden) {
                         meta.data.forEach((element, index) => {
-                            ctx.fillStyle = '#2c3e50';
-                            ctx.font = 'bold 12px "Malgun Gothic", sans-serif'; 
+                            ctx.fillStyle = dataset.borderColor; // 해당 라인의 색상과 맞춤
+                            ctx.font = 'bold 11px "Malgun Gothic", sans-serif'; 
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'bottom';
                             const dataString = dataset.data[index].toString();
-                            ctx.fillText(dataString, element.x, element.y - 10);
+                            ctx.fillText(dataString, element.x, element.y - 8);
                         });
                     }
                 });
             }
         };
 
-        // 🌟 실시간 시간 간격 수정 이벤트
-        // 숫자를 바꿀 때마다 데이터 로그와 그래프의 X축이 즉시 갱신됩니다.
         intervalInput.addEventListener('input', () => {
             if (images.length > 0) {
-                updateLogAndButtons();
-                updateAllCharts();
+                updateLogView();
+                if(allTubesData.length > 0) updateAllCharts();
                 
-                // 현재 분석을 기다리고 있는 사진의 안내 문구 시간도 즉시 업데이트
                 if (currentIndex < images.length) {
                     const interval = parseInt(intervalInput.value) || 1;
-                    const currentMin = currentIndex * interval;
-                    status.innerText = `[${currentMin}분 사진] 시험관 중심을 터치하세요.`;
+                    status.innerText = `[${currentIndex * interval}분 사진] 시험관 중심을 터치하세요.`;
                 }
             }
         });
@@ -322,58 +378,139 @@
 
         function startProcess() {
             currentIndex = 0;
-            records = [];
-            // intervalInput.disabled = true; <-- 삭제됨: 언제든지 수정 가능!
+            currentTubeRecords = [];
+            allTubesData = [];
+            checkboxGroup.innerHTML = '<span style="color:#94a3b8; font-size:13px;">추출 완료된 데이터셋이 없습니다.</span>';
             
+            destroyAllCharts();
+            updateLogView();
+            loadNextImage();
+        }
+
+        function destroyAllCharts() {
             if(chartR) { chartR.destroy(); chartR = null; }
             if(chartG) { chartG.destroy(); chartG = null; }
             if(chartB) { chartB.destroy(); chartB = null; }
-            
-            updateLogAndButtons();
-            loadNextImage();
+            downloadAllBtn.disabled = true;
+            singleDlBtns.forEach(btn => btn.disabled = true);
         }
 
         resetBtn.addEventListener('click', () => {
             input.value = ""; 
             images = [];
             currentIndex = 0;
-            records = [];
+            currentTubeRecords = [];
+            allTubesData = [];
+            checkboxGroup.innerHTML = '<span style="color:#94a3b8; font-size:13px;">추출 완료된 데이터셋이 없습니다.</span>';
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             status.innerText = "사진을 업로드해주세요";
             status.style.color = "#007bff";
             
-            if(chartR) { chartR.destroy(); chartR = null; }
-            if(chartG) { chartG.destroy(); chartG = null; }
-            if(chartB) { chartB.destroy(); chartB = null; }
-            updateLogAndButtons();
+            destroyAllCharts();
+            updateLogView();
         });
 
         undoBtn.addEventListener('click', () => {
-            if(records.length > 0) {
-                records.pop(); 
+            if(currentTubeRecords.length > 0) {
+                currentTubeRecords.pop(); 
                 currentIndex--; 
-                updateLogAndButtons();
-                updateAllCharts();
+                updateLogView();
                 loadNextImage(); 
             }
         });
 
+        // 🌟 다음 시험관 축적 로직 버튼 이벤트
+        nextTubeBtn.addEventListener('click', () => {
+            if(currentTubeRecords.length < images.length) return;
+            
+            const labelInput = prompt("이 그래프의 라벨(이름)을 설정해주세요:\n(예: pH 2, 25도, 대조군 등)", `시험관 ${allTubesData.length + 1}`);
+            const tubeLabel = labelInput ? labelInput.trim() : `시험관 ${allTubesData.length + 1}`;
+            
+            // 축적 배열에 저장
+            allTubesData.push({
+                label: tubeLabel,
+                records: [...currentTubeRecords]
+            });
+            
+            // 다음 시험관 데이터 수집을 위한 환경 리셋
+            currentTubeRecords = [];
+            currentIndex = 0;
+            
+            alert(`[${tubeLabel}] 데이터셋 보관 완료! 다음 시험관 조준을 시작하세요.`);
+            updateLogView();
+            loadNextImage();
+        });
+
+        // 🌟 전체 분석 완료 및 시각화 버튼 이벤트
+        completeBtn.addEventListener('click', () => {
+            // 현재 수집하던 임시 배열이 온전하게 완료상태라면 자동으로 마지막 데이터셋에 편입 시도
+            if(currentTubeRecords.length === images.length) {
+                const labelInput = prompt("마지막 시험관의 라벨(이름)을 설정해주세요:", `시험관 ${allTubesData.length + 1}`);
+                const tubeLabel = labelInput ? labelInput.trim() : `시험관 ${allTubesData.length + 1}`;
+                allTubesData.push({
+                    label: tubeLabel,
+                    records: [...currentTubeRecords]
+                });
+                currentTubeRecords = [];
+            }
+            
+            if(allTubesData.length === 0) {
+                alert("시각화할 수 있는 데이터셋이 전혀 없습니다.");
+                return;
+            }
+            
+            // 체크박스 필터 UI 동적 빌드 생성
+            buildFilterCheckboxes();
+            
+            // 그래프 렌더링 시작
+            updateAllCharts();
+            
+            status.innerText = "✅ 모든 시험관 다중 레이어 그래프 정밀 매핑 완료!";
+            status.style.color = "#198754";
+            
+            downloadAllBtn.disabled = false;
+            singleDlBtns.forEach(btn => btn.disabled = false);
+        </script>
+        <script>
+        // 체크박스 생성기
+        function buildFilterCheckboxes() {
+            checkboxGroup.innerHTML = '';
+            allTubesData.forEach((tube, index) => {
+                const label = document.createElement('label');
+                label.className = 'checkbox-item';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = true; // 기본값은 전부 켜짐으로 겹쳐보임
+                checkbox.value = index;
+                checkbox.addEventListener('change', () => {
+                    updateAllCharts(); // 체크박스 변경 시 상호 유기적 차트 실시간 갱신
+                });
+                
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(tube.label));
+                checkboxGroup.appendChild(label);
+            });
+        }
+
         function loadNextImage() {
+            if (images.length === 0) return;
+            
             if (currentIndex >= images.length) {
-                status.innerText = "✅ 모든 사진 분석이 완료되었습니다!";
-                status.style.color = "#28a745";
+                status.innerText = "🚩 이 시험관의 모든 시간대 터치 수집 완료! 아래 [다음 그래프] 버튼을 누르세요.";
+                status.style.color = "#198754";
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.font = "bold 20px 'Malgun Gothic'";
-                ctx.fillStyle = "#666";
+                ctx.font = "bold 18px 'Malgun Gothic'";
+                ctx.fillStyle = "#198754";
                 ctx.textAlign = "center";
-                ctx.fillText("분석 종료", canvas.width/2, canvas.height/2);
+                ctx.fillText("현재 시험관 캡처 완료", canvas.width/2, canvas.height/2);
                 return;
             }
 
             const interval = parseInt(intervalInput.value) || 1;
             const currentMin = currentIndex * interval;
-            status.innerText = `[${currentMin}분 사진] 시험관 중심을 터치하세요.`;
+            status.innerText = `[${currentTubeRecords.length + 1}번째 시험관 수집 중] ${currentMin}분 사진 정중앙을 터치하세요.`;
             status.style.color = "#dc3545";
             
             const reader = new FileReader();
@@ -390,7 +527,7 @@
         }
 
         canvas.addEventListener('click', (e) => {
-            if(currentIndex >= images.length) return;
+            if(images.length === 0 || currentIndex >= images.length) return;
 
             const rect = canvas.getBoundingClientRect();
             const x = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -401,58 +538,89 @@
 
             const pixel = ctx.getImageData(targetX, targetY, 1, 1).data;
 
-            // 시간(분) 정보를 고정 텍스트로 저장하지 않고 RGB 값만 저장합니다.
-            records.push({
-                r: pixel[0],
-                g: pixel[1],
-                b: pixel[2]
+            currentTubeRecords.push({
+                r: pixel[0], g: pixel[1], b: pixel[2]
             });
 
             currentIndex++;
-            updateLogAndButtons();
-            updateAllCharts();
+            updateLogView();
             loadNextImage();
         });
 
-        function updateLogAndButtons() {
+        function updateLogView() {
             const interval = parseInt(intervalInput.value) || 1;
             
-            dataLog.innerHTML = "<h4>📝 데이터 로그</h4>";
-            // 실시간 간격(interval)을 바탕으로 시간 계산 적용
-            records.forEach((rec, idx) => {
-                const timeLabel = `${idx * interval}분`;
-                dataLog.innerHTML += `시간: <b>${timeLabel}</b> | <span style="color:#dc3545;">R:${rec.r}</span> <span style="color:#28a745;">G:${rec.g}</span> <span style="color:#007bff;">B:${rec.b}</span><br>`;
+            let html = `<h4>📝 현재 시험관 임시 로그 (${currentTubeRecords.length}/${images.length})</h4>`;
+            currentTubeRecords.forEach((rec, idx) => {
+                html += `${idx * interval}분 | <span style="color:#dc3545;">R:${rec.r}</span> <span style="color:#28a745;">G:${rec.g}</span> <span style="color:#007bff;">B:${rec.b}</span><br>`;
             });
+            
+            if(allTubesData.length > 0) {
+                html += `<hr><h4>📦 영구 보관된 시험관 목록</h4>`;
+                allTubesData.forEach((tube, i) => {
+                    html += `<b>[${i+1}] ${tube.label}</b>: 사진 ${tube.records.length}장 데이터 세트 완비<br>`;
+                });
+            }
+            
+            dataLog.innerHTML = html;
             dataLog.scrollTop = dataLog.scrollHeight;
 
-            const hasData = records.length > 0;
-            undoBtn.disabled = !hasData;
-            downloadAllBtn.disabled = !hasData;
-            singleDlBtns.forEach(btn => btn.disabled = !hasData);
+            // 버튼 정밀 상태 관리 활성화/비활성화
+            undoBtn.disabled = currentTubeRecords.length === 0;
+            nextTubeBtn.disabled = currentTubeRecords.length !== images.length;
+            completeBtn.disabled = (allTubesData.length === 0 && currentTubeRecords.length !== images.length);
         }
 
         function calculateYAxisBounds(dataArray) {
             if (dataArray.length === 0) return { min: 0, max: 100 };
-            
             const minVal = Math.min(...dataArray);
             const maxVal = Math.max(...dataArray);
-            
             let yMin = Math.floor(minVal / 100) * 100;
             let yMax = Math.ceil(maxVal / 100) * 100;
-            
-            if (yMin === yMax) {
-                yMax += 100;
-            }
-            
+            if (yMin === yMax) yMax += 100;
             return { min: yMin, max: yMax };
         }
 
-        function createOrUpdateChart(chartObj, canvasId, labels, data, labelName, colorHex) {
-            const bounds = calculateYAxisBounds(data);
+        // 겹쳐그리기 전용 3채널 다중 데이터셋 생성 서브엔진
+        function getActiveDatasets(channelKey) {
+            const checkedIndexes = Array.from(checkboxGroup.querySelectorAll('input[type="checkbox"]:checked')).map(cb => parseInt(cb.value));
+            const datasets = [];
+            let allNumbers = [];
+
+            checkedIndexes.forEach((tubeIdx) => {
+                const tube = allTubesData[tubeIdx];
+                const data = tube.records.map(r => r[channelKey]);
+                allNumbers = allNumbers.concat(data);
+
+                // 순환 컬러 스키마 지정
+                const palette = colorPalette[tubeIdx % colorPalette.length];
+                let strokeColor = palette.g;
+                if(channelKey === 'r') strokeColor = palette.r;
+                if(channelKey === 'b') strokeColor = palette.b;
+
+                datasets.push({
+                    label: tube.label,
+                    data: data,
+                    borderColor: strokeColor,
+                    backgroundColor: strokeColor + '15',
+                    borderWidth: 2.5,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: strokeColor,
+                    fill: false, // 겹쳐보기 편하도록 배경색 채우기는 투명하게 설정
+                    tension: 0.1
+                });
+            });
+
+            return { datasets, bounds: calculateYAxisBounds(allNumbers) };
+        }
+
+        function createOrUpdateMultiChart(chartObj, canvasId, labels, channelKey) {
+            const { datasets, bounds } = getActiveDatasets(channelKey);
 
             if(chartObj) {
                 chartObj.data.labels = labels;
-                chartObj.data.datasets[0].data = data;
+                chartObj.data.datasets = datasets;
                 chartObj.options.scales.y.min = bounds.min;
                 chartObj.options.scales.y.max = bounds.max;
                 chartObj.update();
@@ -461,21 +629,7 @@
                 const ctxChart = document.getElementById(canvasId).getContext('2d');
                 return new Chart(ctxChart, {
                     type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: labelName,
-                            data: data,
-                            borderColor: colorHex,
-                            backgroundColor: colorHex + '22', 
-                            borderWidth: 2,
-                            pointRadius: 6,
-                            pointHoverRadius: 8,
-                            pointBackgroundColor: colorHex,
-                            fill: true,
-                            tension: 0.1
-                        }]
-                    },
+                    data: { labels: labels, datasets: datasets },
                     options: {
                         responsive: true,
                         maintainAspectRatio: true, 
@@ -483,17 +637,11 @@
                         layout: { padding: { top: 30, right: 15, left: 10 } },
                         plugins: {
                             customCanvasBackgroundColor: { color: 'white' },
-                            legend: { labels: { boxWidth: 12, font: { size: 12 } } }
+                            legend: { display: true, labels: { boxWidth: 15, font: { size: 12, weight:'bold' } } }
                         },
                         scales: {
-                            y: { 
-                                min: bounds.min,
-                                max: bounds.max,
-                                ticks: { font: { size: 11 } }
-                            },
-                            x: {
-                                ticks: { font: { size: 11 } }
-                            }
+                            y: { min: bounds.min, max: bounds.max, ticks: { font: { size: 11 } } },
+                            x: { ticks: { font: { size: 11 } } }
                         }
                     },
                     plugins: [customCanvasBackgroundColor, dataLabelsPlugin] 
@@ -503,16 +651,13 @@
 
         function updateAllCharts() {
             const interval = parseInt(intervalInput.value) || 1;
-            
-            // X축 라벨도 실시간으로 수정된 interval을 반영하여 배열 생성
-            const labels = records.map((r, idx) => `${idx * interval}분`);
-            const rData = records.map(r => r.r);
-            const gData = records.map(r => r.g);
-            const bData = records.map(r => r.b);
+            // 수집된 첫 데이터셋 기준으로 우선 X축 타임라인 분할 매핑
+            const baseRecords = allTubesData[0] ? allTubesData[0].records : currentTubeRecords;
+            const labels = baseRecords.map((r, idx) => `${idx * interval}분`);
 
-            chartR = createOrUpdateChart(chartR, 'chartR', labels, rData, 'Red', '#dc3545');
-            chartG = createOrUpdateChart(chartG, 'chartG', labels, gData, 'Green', '#28a745');
-            chartB = createOrUpdateChart(chartB, 'chartB', labels, bData, 'Blue', '#007bff');
+            chartR = createOrUpdateMultiChart(chartR, 'chartR', labels, 'r');
+            chartG = createOrUpdateMultiChart(chartG, 'chartG', labels, g');
+            chartB = createOrUpdateMultiChart(chartB, 'chartB', labels, 'b');
         }
 
         function downloadCanvasAsImage(canvasId, fileName) {
@@ -535,9 +680,9 @@
 
         downloadAllBtn.addEventListener('click', () => {
             if(!chartR || !chartG || !chartB) return;
-            setTimeout(() => downloadCanvasAsImage('chartR', '1_Red_Graph'), 0);
-            setTimeout(() => downloadCanvasAsImage('chartG', '2_Green_Graph'), 400);
-            setTimeout(() => downloadCanvasAsImage('chartB', '3_Blue_Graph'), 800);
+            setTimeout(() => downloadCanvasAsImage('chartR', '1_Red_Combined_Graph'), 0);
+            setTimeout(() => downloadCanvasAsImage('chartG', '2_Green_Combined_Graph'), 400);
+            setTimeout(() => downloadCanvasAsImage('chartB', '3_Blue_Combined_Graph'), 800);
         });
     </script>
 </body>
