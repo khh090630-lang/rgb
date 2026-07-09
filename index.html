@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>효소 반응 RGB 다중 정밀 분석기</title>
+    <title>효소 반응 RGB 분석기</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -165,7 +165,6 @@
             overflow-y: auto; 
         }
 
-        /* 체크박스 영역 디자인 */
         .filter-box {
             display: flex;
             flex-direction: column;
@@ -219,13 +218,13 @@
 </head>
 <body>
 
-    <h2>🧪 효소 반응 RGB 다중 시험관 분석기</h2>
+    <h2>🧪 효소 반응 RGB 분석기</h2>
     <div class="instruction">
         <strong>[다중 그래프 겹쳐보기 사용 방법]</strong><br>
         1. 사진들을 한 번에 선택하여 업로드합니다.<br>
-        2. 첫 번째 시험관의 실시간 타임라인 터치를 완료하면 <b>[이름 설정 후 다음 그래프]</b> 버튼을 누르세요.<br>
+        2. 첫 번째 시험관의 타임라인 터치를 완료하면 <b>[이름 설정 후 다음 그래프]</b> 버튼을 누르세요.<br>
         3. 이름(예: pH 2)을 지정하면 사진이 다시 0분으로 세팅되며 다음 시험관 분석을 이어서 시작합니다.<br>
-        4. 모든 시험관 수집이 완료되면 <b>[분석 완료 및 시각화]</b>를 누르세요. 생성된 체크박스로 그래프를 선택 및 중첩 제어할 수 있습니다.
+        4. 모든 시험관 수집이 완료되면 <b>[분석 완료 및 시각화]</b>를 누르세요. 생성된 체크박스로 그래프를 선택하여 나타낼 수 있습니다.
     </div>
 
     <div class="container">
@@ -255,7 +254,7 @@
 
         <div class="right-panel">
             <div class="filter-box">
-                <div class="filter-title">🔍 화면에 나타낼 그래프 선택 (2개 이상 선택 시 자동으로 겹쳐보임)</div>
+                <div class="filter-title">🔍 화면에 나타낼 그래프 선택</div>
                 <div id="checkboxGroup" class="checkbox-group">
                     <span style="color:#94a3b8; font-size:13px;">추출 완료된 데이터셋이 없습니다.</span>
                 </div>
@@ -265,7 +264,7 @@
 
             <div class="chart-box">
                 <div class="chart-header">
-                    <h4 style="color: #dc3545;">🔴 R (Red) 채널 다중 변화</h4>
+                    <h4 style="color: #dc3545;">🔴 R (Red) 다중 변화</h4>
                     <button class="btn btn-download btn-sm single-dl-btn" data-target="chartR" data-name="Red_Multi_Graph" disabled>저장</button>
                 </div>
                 <canvas id="chartR" class="chart-canvas"></canvas>
@@ -273,7 +272,7 @@
 
             <div class="chart-box">
                 <div class="chart-header">
-                    <h4 style="color: #28a745;">🟢 G (Green) 채널 다중 변화</h4>
+                    <h4 style="color: #28a745;">🟢 G (Green) 다중 변화</h4>
                     <button class="btn btn-download btn-sm single-dl-btn" data-target="chartG" data-name="Green_Multi_Graph" disabled>저장</button>
                 </div>
                 <canvas id="chartG" class="chart-canvas"></canvas>
@@ -281,7 +280,7 @@
 
             <div class="chart-box">
                 <div class="chart-header">
-                    <h4 style="color: #007bff;">🔵 B (Blue) 채널 다중 변화</h4>
+                    <h4 style="color: #007bff;">🔵 B (Blue) 다중 변화</h4>
                     <button class="btn btn-download btn-sm single-dl-btn" data-target="chartB" data-name="Blue_Multi_Graph" disabled>저장</button>
                 </div>
                 <canvas id="chartB" class="chart-canvas"></canvas>
@@ -308,22 +307,18 @@
         let images = [];
         let currentIndex = 0;
         
-        // 현재 수집 중인 시험관의 임시 데이터 배열
         let currentTubeRecords = []; 
-        
-        // 최종 완료되어 축적된 모든 시험관들의 전체 데이터 배열 저장소
         let allTubesData = []; 
 
         let chartR = null;
         let chartG = null;
         let chartB = null;
 
-        // 그래프 라벨링용 고유 투명도 설정 색상 템플릿 그룹
         const colorPalette = [
-            { r: '#dc3545', g: '#28a745', b: '#007bff' },  // 1번 세트 (기본 빨/초/파)
-            { r: '#fd7e14', g: '#20c997', b: '#6f42c1' },  // 2번 세트 (주황/민트/보라)
-            { r: '#b5179e', g: '#72efdd', b: '#3f37c9' },  // 3번 세트 (자주/청록/네이비)
-            { r: '#70e000', g: '#ff0a54', b: '#00b4d8' }   // 4번 세트 (연두/핫핑크/하늘)
+            { r: '#dc3545', g: '#28a745', b: '#007bff' },  
+            { r: '#fd7e14', g: '#20c997', b: '#6f42c1' },  
+            { r: '#b5179e', g: '#72efdd', b: '#3f37c9' },  
+            { r: '#70e000', g: '#ff0a54', b: '#00b4d8' }   
         ];
 
         const customCanvasBackgroundColor = {
@@ -346,7 +341,7 @@
                     const meta = chart.getDatasetMeta(i);
                     if (!meta.hidden) {
                         meta.data.forEach((element, index) => {
-                            ctx.fillStyle = dataset.borderColor; // 해당 라인의 색상과 맞춤
+                            ctx.fillStyle = dataset.borderColor; 
                             ctx.font = 'bold 11px "Malgun Gothic", sans-serif'; 
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'bottom';
@@ -420,20 +415,17 @@
             }
         });
 
-        // 🌟 다음 시험관 축적 로직 버튼 이벤트
         nextTubeBtn.addEventListener('click', () => {
             if(currentTubeRecords.length < images.length) return;
             
             const labelInput = prompt("이 그래프의 라벨(이름)을 설정해주세요:\n(예: pH 2, 25도, 대조군 등)", `시험관 ${allTubesData.length + 1}`);
             const tubeLabel = labelInput ? labelInput.trim() : `시험관 ${allTubesData.length + 1}`;
             
-            // 축적 배열에 저장
             allTubesData.push({
                 label: tubeLabel,
                 records: [...currentTubeRecords]
             });
             
-            // 다음 시험관 데이터 수집을 위한 환경 리셋
             currentTubeRecords = [];
             currentIndex = 0;
             
@@ -442,9 +434,7 @@
             loadNextImage();
         });
 
-        // 🌟 전체 분석 완료 및 시각화 버튼 이벤트
         completeBtn.addEventListener('click', () => {
-            // 현재 수집하던 임시 배열이 온전하게 완료상태라면 자동으로 마지막 데이터셋에 편입 시도
             if(currentTubeRecords.length === images.length) {
                 const labelInput = prompt("마지막 시험관의 라벨(이름)을 설정해주세요:", `시험관 ${allTubesData.length + 1}`);
                 const tubeLabel = labelInput ? labelInput.trim() : `시험관 ${allTubesData.length + 1}`;
@@ -460,10 +450,7 @@
                 return;
             }
             
-            // 체크박스 필터 UI 동적 빌드 생성
             buildFilterCheckboxes();
-            
-            // 그래프 렌더링 시작
             updateAllCharts();
             
             status.innerText = "✅ 모든 시험관 다중 레이어 그래프 정밀 매핑 완료!";
@@ -471,9 +458,8 @@
             
             downloadAllBtn.disabled = false;
             singleDlBtns.forEach(btn => btn.disabled = false);
-        </script>
-        <script>
-        // 체크박스 생성기
+        });
+
         function buildFilterCheckboxes() {
             checkboxGroup.innerHTML = '';
             allTubesData.forEach((tube, index) => {
@@ -482,10 +468,10 @@
                 
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
-                checkbox.checked = true; // 기본값은 전부 켜짐으로 겹쳐보임
+                checkbox.checked = true; 
                 checkbox.value = index;
                 checkbox.addEventListener('change', () => {
-                    updateAllCharts(); // 체크박스 변경 시 상호 유기적 차트 실시간 갱신
+                    updateAllCharts(); 
                 });
                 
                 label.appendChild(checkbox);
@@ -565,7 +551,6 @@
             dataLog.innerHTML = html;
             dataLog.scrollTop = dataLog.scrollHeight;
 
-            // 버튼 정밀 상태 관리 활성화/비활성화
             undoBtn.disabled = currentTubeRecords.length === 0;
             nextTubeBtn.disabled = currentTubeRecords.length !== images.length;
             completeBtn.disabled = (allTubesData.length === 0 && currentTubeRecords.length !== images.length);
@@ -581,7 +566,6 @@
             return { min: yMin, max: yMax };
         }
 
-        // 겹쳐그리기 전용 3채널 다중 데이터셋 생성 서브엔진
         function getActiveDatasets(channelKey) {
             const checkedIndexes = Array.from(checkboxGroup.querySelectorAll('input[type="checkbox"]:checked')).map(cb => parseInt(cb.value));
             const datasets = [];
@@ -592,7 +576,6 @@
                 const data = tube.records.map(r => r[channelKey]);
                 allNumbers = allNumbers.concat(data);
 
-                // 순환 컬러 스키마 지정
                 const palette = colorPalette[tubeIdx % colorPalette.length];
                 let strokeColor = palette.g;
                 if(channelKey === 'r') strokeColor = palette.r;
@@ -607,7 +590,7 @@
                     pointRadius: 5,
                     pointHoverRadius: 7,
                     pointBackgroundColor: strokeColor,
-                    fill: false, // 겹쳐보기 편하도록 배경색 채우기는 투명하게 설정
+                    fill: false, 
                     tension: 0.1
                 });
             });
@@ -651,12 +634,11 @@
 
         function updateAllCharts() {
             const interval = parseInt(intervalInput.value) || 1;
-            // 수집된 첫 데이터셋 기준으로 우선 X축 타임라인 분할 매핑
             const baseRecords = allTubesData[0] ? allTubesData[0].records : currentTubeRecords;
             const labels = baseRecords.map((r, idx) => `${idx * interval}분`);
 
             chartR = createOrUpdateMultiChart(chartR, 'chartR', labels, 'r');
-            chartG = createOrUpdateMultiChart(chartG, 'chartG', labels, g');
+            chartG = createOrUpdateMultiChart(chartG, 'chartG', labels, 'g');
             chartB = createOrUpdateMultiChart(chartB, 'chartB', labels, 'b');
         }
 
