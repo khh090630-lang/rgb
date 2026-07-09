@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>효소 반응 RGB 다중 정밀 분석기 (통합 스케일)</title>
+    <title>효소 반응 RGB 분석기</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -254,7 +254,7 @@
 
         <div class="right-panel">
             <div class="filter-box">
-                <div class="filter-title">🔍 화면에 나타낼 그래프 선택 (2개 이상 선택 시 자동으로 겹쳐보임)</div>
+                <div class="filter-title">🔍 화면에 나타낼 그래프 선택</div>
                 <div id="checkboxGroup" class="checkbox-group">
                     <span style="color:#94a3b8; font-size:13px;">추출 완료된 데이터셋이 없습니다.</span>
                 </div>
@@ -264,7 +264,7 @@
 
             <div class="chart-box">
                 <div class="chart-header">
-                    <h4 style="color: #dc3545;">🔴 R (Red) 채널 다중 변화</h4>
+                    <h4 style="color: #dc3545;">🔴 R (Red) 변화</h4>
                     <button class="btn btn-download btn-sm single-dl-btn" data-target="chartR" data-name="Red_Multi_Graph" disabled>저장</button>
                 </div>
                 <canvas id="chartR" class="chart-canvas"></canvas>
@@ -272,7 +272,7 @@
 
             <div class="chart-box">
                 <div class="chart-header">
-                    <h4 style="color: #28a745;">🟢 G (Green) 채널 다중 변화</h4>
+                    <h4 style="color: #28a745;">🟢 G (Green) 변화</h4>
                     <button class="btn btn-download btn-sm single-dl-btn" data-target="chartG" data-name="Green_Multi_Graph" disabled>저장</button>
                 </div>
                 <canvas id="chartG" class="chart-canvas"></canvas>
@@ -280,7 +280,7 @@
 
             <div class="chart-box">
                 <div class="chart-header">
-                    <h4 style="color: #007bff;">🔵 B (Blue) 채널 다중 변화</h4>
+                    <h4 style="color: #007bff;">🔵 B (Blue) 변화</h4>
                     <button class="btn btn-download btn-sm single-dl-btn" data-target="chartB" data-name="Blue_Multi_Graph" disabled>저장</button>
                 </div>
                 <canvas id="chartB" class="chart-canvas"></canvas>
