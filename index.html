@@ -262,6 +262,15 @@
 
             <button id="downloadAllBtn" class="btn btn-download-all" disabled>📥 표시된 그래프 이미지 일괄 저장</button>
 
+            <!-- RGB 평균 그래프 추가 -->
+            <div class="chart-box">
+                <div class="chart-header">
+                    <h4 style="color: #6c757d;">⚫ RGB 평균 변화</h4>
+                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartAvg" data-name="Average_Multi_Graph" disabled>저장</button>
+                </div>
+                <canvas id="chartAvg" class="chart-canvas"></canvas>
+            </div>
+
             <div class="chart-box">
                 <div class="chart-header">
                     <h4 style="color: #dc3545;">🔴 R (Red) 변화</h4>
@@ -302,7 +311,6 @@
         const completeBtn = document.getElementById('completeBtn');
         const resetBtn = document.getElementById('resetBtn');
         const downloadAllBtn = document.getElementById('downloadAllBtn');
-        const singleDlBtns = document.querySelectorAll('.single-dl-btn');
 
         let images = [];
         let currentIndex = 0;
@@ -313,6 +321,7 @@
         let chartR = null;
         let chartG = null;
         let chartB = null;
+        let chartAvg = null; // 평균 그래프 변수 추가
 
         const colorPalette = [
             '#e6194b', 
@@ -390,8 +399,10 @@
             if(chartR) { chartR.destroy(); chartR = null; }
             if(chartG) { chartG.destroy(); chartG = null; }
             if(chartB) { chartB.destroy(); chartB = null; }
+            if(chartAvg) { chartAvg.destroy(); chartAvg = null; } // 평균 차트 소멸 추가
+            
             downloadAllBtn.disabled = true;
-            singleDlBtns.forEach(btn => btn.disabled = true);
+            document.querySelectorAll('.single-dl-btn').forEach(btn => btn.disabled = true);
         }
 
         resetBtn.addEventListener('click', () => {
@@ -466,7 +477,7 @@
             status.style.color = "#198754";
             
             downloadAllBtn.disabled = false;
-            singleDlBtns.forEach(btn => btn.disabled = false);
+            document.querySelectorAll('.single-dl-btn').forEach(btn => btn.disabled = false);
         });
 
         function buildFilterCheckboxes() {
@@ -557,7 +568,8 @@
             
             let html = `<h4>📝 현재 시험관 수집 로그 (${currentTubeRecords.length}/${images.length})</h4>`;
             currentTubeRecords.forEach((rec, idx) => {
-                html += `${idx * interval}분 | <span style="color:#dc3545;">R:${rec.r}</span> <span style="color:#28a745;">G:${rec.g}</span> <span style="color:#007bff;">B:${rec.b}</span><br>`;
+                const avg = Math.round((rec.r + rec.g + rec.b) / 3);
+                html += `${idx * interval}분 | <span style="color:#dc3545;">R:${rec.r}</span> <span style="color:#28a745;">G:${rec.g}</span> <span style="color:#007bff;">B:${rec.b}</span> <b>(평균:${avg})</b><br>`;
             });
             
             if(allTubesData.length > 0) {
@@ -625,7 +637,13 @@
                 const checkedIndexes = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
                 checkedIndexes.forEach((tubeIdx) => {
                     const tube = allTubesData[tubeIdx];
-                    const data = tube.records.map(r => r[channelKey]);
+                    
+                    // 평균값('avg') 또는 각 채널 매핑 로직 추가
+                    const data = tube.records.map(r => {
+                        if (channelKey === 'avg') return Math.round((r.r + r.g + r.b) / 3);
+                        return r[channelKey];
+                    });
+                    
                     const strokeColor = colorPalette[tubeIdx % colorPalette.length];
 
                     datasets.push({
@@ -644,7 +662,10 @@
             }
 
             if (currentTubeRecords.length > 0) {
-                const data = currentTubeRecords.map(r => r[channelKey]);
+                const data = currentTubeRecords.map(r => {
+                    if (channelKey === 'avg') return Math.round((r.r + r.g + r.b) / 3);
+                    return r[channelKey];
+                });
                 const nextIdx = allTubesData.length;
                 const strokeColor = colorPalette[nextIdx % colorPalette.length];
 
@@ -669,19 +690,20 @@
         function createOrUpdateMultiChart(chartObj, canvasId, labels, channelKey, globalBounds) {
             const datasets = getActiveDatasets(channelKey);
 
-            // 🌟 캔버스 이미지 출력 시 상단에 고정 표시될 네임태그 제목 결정 로직
             let titleText = '';
             let titleColor = '';
+            
+            // 평균 타이틀 및 색상 할당 추가
             if (channelKey === 'r') { titleText = '🔴 R (Red) 채널 다중 변화 그래프'; titleColor = '#dc3545'; }
             else if (channelKey === 'g') { titleText = '🟢 G (Green) 채널 다중 변화 그래프'; titleColor = '#28a745'; }
             else if (channelKey === 'b') { titleText = '🔵 B (Blue) 채널 다중 변화 그래프'; titleColor = '#007bff'; }
+            else if (channelKey === 'avg') { titleText = '⚫ RGB 평균 변화 다중 그래프'; titleColor = '#6c757d'; }
 
             if(chartObj) {
                 chartObj.data.labels = labels;
                 chartObj.data.datasets = datasets;
                 chartObj.options.scales.y.min = globalBounds.min;
                 chartObj.options.scales.y.max = globalBounds.max;
-                // 차트가 이미 존재할 때도 내부 타이틀 텍스트를 최신 상태로 유지 보존
                 chartObj.options.plugins.title.text = titleText;
                 chartObj.update();
                 return chartObj;
@@ -698,7 +720,6 @@
                         plugins: {
                             customCanvasBackgroundColor: { color: 'white' },
                             legend: { display: true, labels: { boxWidth: 15, font: { size: 12, weight:'bold' } } },
-                            // 🌟 핵심 수정 파트: 차트 자체에 타이틀 속성을 심어 내보낼 때 글자가 함께 지워지지 않도록 결합
                             title: {
                                 display: true,
                                 text: titleText,
@@ -728,13 +749,15 @@
             const labels = Array.from({length: maxPoints}, (_, idx) => `${idx * interval}분`);
             const globalBounds = getGlobalYAxisBounds();
 
+            // 차트 업데이트 함수에 평균(chartAvg) 포함
+            chartAvg = createOrUpdateMultiChart(chartAvg, 'chartAvg', labels, 'avg', globalBounds);
             chartR = createOrUpdateMultiChart(chartR, 'chartR', labels, 'r', globalBounds);
             chartG = createOrUpdateMultiChart(chartG, 'chartG', labels, 'g', globalBounds);
             chartB = createOrUpdateMultiChart(chartB, 'chartB', labels, 'b', globalBounds);
             
             if (maxPoints > 0) {
                 downloadAllBtn.disabled = false;
-                singleDlBtns.forEach(btn => btn.disabled = false);
+                document.querySelectorAll('.single-dl-btn').forEach(btn => btn.disabled = false);
             }
         }
 
@@ -748,19 +771,21 @@
             link.click();
         }
 
-        singleDlBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        // 각 차트의 저장버튼을 누를 때의 동작
+        document.body.addEventListener('click', (e) => {
+            if (e.target.classList.contains('single-dl-btn')) {
                 const targetCanvas = e.target.getAttribute('data-target');
                 const name = e.target.getAttribute('data-name');
                 downloadCanvasAsImage(targetCanvas, name);
-            });
+            }
         });
 
         downloadAllBtn.addEventListener('click', () => {
-            if(!chartR || !chartG || !chartB) return;
-            setTimeout(() => downloadCanvasAsImage('chartR', '1_Red_Combined_Graph'), 0);
-            setTimeout(() => downloadCanvasAsImage('chartG', '2_Green_Combined_Graph'), 400);
-            setTimeout(() => downloadCanvasAsImage('chartB', '3_Blue_Combined_Graph'), 800);
+            if(!chartR || !chartG || !chartB || !chartAvg) return;
+            setTimeout(() => downloadCanvasAsImage('chartAvg', '1_Average_Combined_Graph'), 0);
+            setTimeout(() => downloadCanvasAsImage('chartR', '2_Red_Combined_Graph'), 400);
+            setTimeout(() => downloadCanvasAsImage('chartG', '3_Green_Combined_Graph'), 800);
+            setTimeout(() => downloadCanvasAsImage('chartB', '4_Blue_Combined_Graph'), 1200);
         });
     </script>
 </body>
