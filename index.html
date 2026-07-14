@@ -56,13 +56,17 @@
             overflow: hidden;
             margin-top: 5px;
         }
-        canvas #imageCanvas {
+        
+        /* 🚨 수정된 부분: 띄어쓰기를 없애고 모바일 최적화 속성 추가 */
+        #imageCanvas {
             border: 2px dashed #cbd5e1;
             cursor: crosshair; 
-            width: 100% !important; 
+            max-width: 100%; 
             height: auto !important;
             border-radius: 8px;
             background-color: #f8fafc;
+            touch-action: none; /* 모바일에서 터치 시 화면 스크롤 방지 */
+            display: block;
         }
 
         .controls {
@@ -545,6 +549,8 @@
             if(images.length === 0 || currentIndex >= images.length) return;
 
             const rect = canvas.getBoundingClientRect();
+            
+            // CSS 배율이 반영된 클릭 좌표를 캔버스 원본 크기 좌표로 정확하게 매핑
             const x = (e.clientX - rect.left) * (canvas.width / rect.width);
             const y = (e.clientY - rect.top) * (canvas.height / rect.height);
 
@@ -638,7 +644,6 @@
                 checkedIndexes.forEach((tubeIdx) => {
                     const tube = allTubesData[tubeIdx];
                     
-                    // 평균값('avg') 또는 각 채널 매핑 로직 추가
                     const data = tube.records.map(r => {
                         if (channelKey === 'avg') return Math.round((r.r + r.g + r.b) / 3);
                         return r[channelKey];
@@ -693,7 +698,6 @@
             let titleText = '';
             let titleColor = '';
             
-            // 평균 타이틀 및 색상 할당 추가
             if (channelKey === 'r') { titleText = '🔴 R (Red) 채널 다중 변화 그래프'; titleColor = '#dc3545'; }
             else if (channelKey === 'g') { titleText = '🟢 G (Green) 채널 다중 변화 그래프'; titleColor = '#28a745'; }
             else if (channelKey === 'b') { titleText = '🔵 B (Blue) 채널 다중 변화 그래프'; titleColor = '#007bff'; }
@@ -749,7 +753,6 @@
             const labels = Array.from({length: maxPoints}, (_, idx) => `${idx * interval}분`);
             const globalBounds = getGlobalYAxisBounds();
 
-            // 차트 업데이트 함수에 평균(chartAvg) 포함
             chartAvg = createOrUpdateMultiChart(chartAvg, 'chartAvg', labels, 'avg', globalBounds);
             chartR = createOrUpdateMultiChart(chartR, 'chartR', labels, 'r', globalBounds);
             chartG = createOrUpdateMultiChart(chartG, 'chartG', labels, 'g', globalBounds);
@@ -771,7 +774,6 @@
             link.click();
         }
 
-        // 각 차트의 저장버튼을 누를 때의 동작
         document.body.addEventListener('click', (e) => {
             if (e.target.classList.contains('single-dl-btn')) {
                 const targetCanvas = e.target.getAttribute('data-target');
