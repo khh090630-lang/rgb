@@ -5,179 +5,361 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>효소 반응 RGB 다중 정밀 분석기</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
     <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #10b981;
+            --success-hover: #059669;
+            --warning: #f59e0b;
+            --warning-hover: #d97706;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --info: #0ea5e9;
+            --info-hover: #0284c7;
+            --bg-color: #f8fafc;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --radius-md: 12px;
+            --radius-lg: 20px;
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Malgun Gothic";
-            background-color: #f1f3f5;
-            padding: 12px;
+            font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+            background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+            background-attachment: fixed;
+            padding: 16px;
             margin: 0;
-            color: #333;
-            -webkit-user-select: none; 
+            color: var(--text-main);
+            -webkit-user-select: none;
+            min-height: 100vh;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding-top: 10px;
         }
         h2 { 
-            color: #2c3e50; 
-            font-size: 20px; 
-            margin-top: 10px;
-            margin-bottom: 10px;
+            color: var(--text-main); 
+            font-size: 28px; 
+            font-weight: 800;
+            margin: 0 0 16px 0;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.05);
             text-align: center;
         }
         .instruction {
-            background-color: #e9ecef;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 13px;
-            line-height: 1.5;
-            margin-bottom: 15px;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid rgba(255,255,255,0.8);
+            color: var(--text-muted);
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .instruction strong {
+            color: var(--primary);
+            font-size: 17px;
+            display: inline-block;
+            margin-bottom: 12px;
+            font-weight: 700;
         }
         .container {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 24px;
+            max-width: 1400px;
+            margin: 0 auto;
         }
         
-        .left-panel, .chart-box, #dataLog, .filter-box {
-            background: white;
-            padding: 16px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        .panel {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid rgba(255,255,255,0.8);
         }
-
         .left-panel {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 20px;
         }
-
         .canvas-container {
             width: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            margin-top: 5px;
+            background: #f8fafc;
+            border-radius: var(--radius-md);
+            padding: 16px;
+            box-sizing: border-box;
+            border: 1px solid var(--border);
         }
         
-        /* 🚨 수정된 부분: 띄어쓰기를 없애고 모바일 최적화 속성 추가 */
         #imageCanvas {
             border: 2px dashed #cbd5e1;
             cursor: crosshair; 
             max-width: 100%; 
             height: auto !important;
             border-radius: 8px;
-            background-color: #f8fafc;
-            touch-action: none; /* 모바일에서 터치 시 화면 스크롤 방지 */
+            background-color: #fff;
+            touch-action: none;
             display: block;
+            transition: all 0.3s ease;
         }
-
+        #imageCanvas:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        }
         .controls {
-            padding: 12px;
-            background-color: #e3f2fd;
-            border-radius: 8px;
-            border: 1px solid #90caf9;
-        }
-        .time-setting {
-            font-weight: bold;
-            margin-bottom: 12px;
-            color: #0056b3;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .time-setting input {
-            width: 60px;
-            padding: 6px;
-            text-align: center;
-            font-weight: bold;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        input[type="file"] {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 10px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            background-color: white;
-            font-size: 13px;
-            margin-bottom: 8px;
-        }
-
-        .btn-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            width: 100%;
-        }
-        .btn {
-            flex: 1;
-            min-width: 100px;
-            padding: 12px 10px; 
-            font-size: 13px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.2s;
-            text-align: center;
-        }
-        .btn:disabled { background-color: #cbd5e1; cursor: not-allowed; color: #94a3b8; }
-        .btn-undo { background-color: #ffc107; color: #000; }
-        .btn-next { background-color: #0d6efd; color: #fff; }
-        .btn-complete { background-color: #198754; color: #fff; }
-        .btn-reset { background-color: #dc3545; color: #fff; }
-        .btn-download { background-color: #28a745; color: #fff; }
-        .btn-sm { padding: 8px 12px; font-size: 12px; flex: none; }
-        
-        .btn-download-all { 
-            background-color: #17a2b8; 
-            color: #fff; 
-            font-size: 15px; 
-            padding: 14px; 
-            width: 100%;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .right-panel {
             display: flex;
             flex-direction: column;
             gap: 16px;
+        }
+        .time-setting {
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: white;
+            padding: 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+        }
+        .time-setting input {
+            width: 70px;
+            padding: 8px;
+            text-align: center;
+            font-weight: 700;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.2s;
+            background: #f8fafc;
+            color: var(--primary);
+        }
+        .time-setting input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+        }
+        input[type="file"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-md);
+            background-color: white;
+            font-size: 14px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        input[type="file"]:hover {
+            border-color: var(--primary);
+            background-color: #f8fafc;
+        }
+        input[type="file"]::file-selector-button {
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: none;
+            background: var(--info);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-right: 16px;
+        }
+        input[type="file"]::file-selector-button:hover {
+            background: var(--info-hover);
+        }
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+        }
+        
+        .btn {
+            padding: 14px 16px; 
+            font-size: 14px;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: var(--shadow-sm);
+        }
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        .btn:disabled { 
+            background-color: #f1f5f9; 
+            cursor: not-allowed; 
+            color: #94a3b8; 
+            box-shadow: none;
+            transform: none;
+        }
+        .btn-undo { background-color: var(--warning); color: #fff; }
+        .btn-undo:hover:not(:disabled) { background-color: var(--warning-hover); }
+        
+        .btn-next { background-color: var(--primary); color: #fff; grid-column: span 2; }
+        .btn-next:hover:not(:disabled) { background-color: var(--primary-hover); }
+        
+        .btn-complete { background-color: var(--success); color: #fff; grid-column: span 2; }
+        .btn-complete:hover:not(:disabled) { background-color: var(--success-hover); }
+        
+        .btn-reset { background-color: white; color: var(--danger); border: 1px solid #fecaca; }
+        .btn-reset:hover:not(:disabled) { background-color: #fef2f2; }
+        
+        .btn-download { background-color: white; color: var(--text-main); border: 1px solid var(--border); }
+        .btn-download:hover:not(:disabled) { background-color: #f8fafc; border-color: #cbd5e1; }
+        
+        .btn-sm { padding: 8px 16px; font-size: 13px; border-radius: 8px; font-weight: 600; }
+        
+        .btn-download-all { 
+            background: linear-gradient(135deg, var(--info), var(--primary));
+            color: #fff; 
+            font-size: 16px; 
+            padding: 18px; 
+            width: 100%;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            border: none;
+            font-weight: 700;
+            margin-top: 8px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-download-all:hover:not(:disabled) {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .btn-download-all:disabled {
+            background: #e2e8f0;
+            color: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .chart-box {
+            background: white;
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+        .chart-box:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: #cbd5e1;
         }
         .chart-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
-            border-bottom: 2px solid #f1f3f5;
-            padding-bottom: 8px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
         }
-        .chart-header h4 { margin: 0; font-size: 15px; }
-
-        #imageStatus {
-            font-size: 14px;
-            margin: 5px 0;
-            text-align: center;
-        }
-
-        #dataLog {
-            font-size: 13px;
-            line-height: 1.6;
-            max-height: 150px;
-            overflow-y: auto; 
-        }
-
-        .filter-box {
+        .chart-header h4 { 
+            margin: 0; 
+            font-size: 17px; 
+            font-weight: 700;
             display: flex;
-            flex-direction: column;
+            align-items: center;
             gap: 10px;
         }
-        .filter-title {
-            font-weight: bold;
+        #imageStatus {
+            font-size: 15px;
+            font-weight: 600;
+            margin: 10px 0;
+            text-align: center;
+            padding: 14px;
+            border-radius: var(--radius-md);
+            background: #eff6ff;
+            color: var(--info);
+            border: 1px solid #bfdbfe;
+            transition: all 0.3s ease;
+        }
+        #dataLog {
             font-size: 14px;
-            color: #2c3e50;
+            line-height: 1.6;
+            max-height: 250px;
+            overflow-y: auto; 
+            background: white;
+            padding: 20px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+        #dataLog h4 {
+            margin-top: 0;
+            color: var(--text-main);
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #dataLog hr {
+            border: 0;
+            border-top: 1px dashed var(--border);
+            margin: 20px 0;
+        }
+        .filter-box {
+            background: white;
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .filter-title {
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
         }
         .checkbox-group {
             display: flex;
@@ -185,44 +367,87 @@
             gap: 12px;
         }
         .checkbox-item {
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 10px;
             font-size: 14px;
+            font-weight: 600;
             background: #f8fafc;
-            padding: 6px 12px;
-            border-radius: 20px;
-            border: 1px solid #e2e8f0;
+            padding: 10px 18px;
+            border-radius: 30px;
+            border: 1px solid var(--border);
             cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .checkbox-item:hover {
+            border-color: var(--primary);
+            background: white;
+            box-shadow: var(--shadow-sm);
         }
         .checkbox-item input {
             cursor: pointer;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+            margin: 0;
         }
-
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
         @media (min-width: 992px) {
-            body { padding: 24px; }
-            h2 { font-size: 24px; text-align: left; }
+            body { padding: 40px 32px; }
+            h2 { font-size: 36px; text-align: left; margin-bottom: 24px; padding-left: 20px; }
             .container {
                 flex-direction: row;
                 align-items: flex-start;
             }
             .left-panel {
                 flex: 1;
-                min-width: 380px;
+                min-width: 420px;
                 position: sticky;
-                top: 20px;
+                top: 32px;
+                max-height: calc(100vh - 64px);
+                overflow-y: auto;
+                scrollbar-width: none;
+            }
+            .left-panel::-webkit-scrollbar {
+                display: none;
             }
             .right-panel {
                 flex: 1.5;
-                min-width: 450px;
+                min-width: 550px;
             }
-            .instruction { font-size: 14px; padding: 16px; }
         }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-right: 6px;
+        }
+        .badge-red { background: #fee2e2; color: #dc2626; }
+        .badge-green { background: #dcfce3; color: #16a34a; }
+        .badge-blue { background: #dbeafe; color: #2563eb; }
+        .badge-gray { background: #f1f5f9; color: #475569; }
     </style>
 </head>
 <body>
-
-    <h2>🧪 효소 반응 RGB 다중 시험관 분석기</h2>
+    <h2>🧪 효소 반응 RGB 다중 정밀 분석기</h2>
     <div class="instruction">
         <strong>[다중 그래프 겹쳐보기 사용 방법]</strong><br>
         1. 사진들을 한 번에 선택하여 업로드합니다.<br>
@@ -230,9 +455,8 @@
         3. 이름(예: pH 2)을 지정하면 사진이 다시 0분으로 세팅되며 다음 시험관 분석을 이어서 시작합니다.<br>
         4. 모든 시험관 수집이 완료되면 <b>[분석 완료 및 시각화]</b>를 누르세요. 생성된 체크박스로 그래프를 켜고 끌 수 있습니다.
     </div>
-
     <div class="container">
-        <div class="left-panel">
+        <div class="left-panel panel">
             <div class="controls">
                 <div class="time-setting">
                     <label for="intervalInput">⏱️ 촬영 간격: </label>
@@ -242,65 +466,58 @@
                 
                 <div class="btn-group">
                     <button id="undoBtn" class="btn btn-undo" disabled>↩ 이전 사진</button>
+                    <button id="resetBtn" class="btn btn-reset">🔄 초기화</button>
                     <button id="nextTubeBtn" class="btn btn-next" disabled>💾 이름 설정 후 다음 그래프</button>
                     <button id="completeBtn" class="btn btn-complete" disabled>📊 분석 완료 및 시각화</button>
-                    <button id="resetBtn" class="btn btn-reset">🔄 초기화</button>
                 </div>
             </div>
             
-            <h3 id="imageStatus" style="color: #007bff;">사진을 업로드해주세요</h3>
+            <div id="imageStatus">사진을 업로드해주세요</div>
             <div class="canvas-container">
                 <canvas id="imageCanvas"></canvas>
             </div>
             
             <div id="dataLog"><h4>📝 데이터 로그</h4></div>
         </div>
-
         <div class="right-panel">
             <div class="filter-box">
                 <div class="filter-title">🔍 화면에 나타낼 그래프 선택</div>
                 <div id="checkboxGroup" class="checkbox-group">
-                    <span style="color:#94a3b8; font-size:13px;">추출 완료된 데이터셋이 없습니다.</span>
+                    <span style="color:#94a3b8; font-size:14px; padding: 4px;">추출 완료된 데이터셋이 없습니다.</span>
                 </div>
             </div>
-
-            <button id="downloadAllBtn" class="btn btn-download-all" disabled>📥 표시된 그래프 이미지 일괄 저장</button>
-
+            <button id="downloadAllBtn" class="btn-download-all" disabled>📥 표시된 그래프 이미지 일괄 저장</button>
             <!-- RGB 평균 그래프 추가 -->
             <div class="chart-box">
                 <div class="chart-header">
-                    <h4 style="color: #6c757d;">⚫ RGB 평균 변화</h4>
+                    <h4 style="color: #475569;">⚫ RGB 평균 변화</h4>
                     <button class="btn btn-download btn-sm single-dl-btn" data-target="chartAvg" data-name="Average_Multi_Graph" disabled>저장</button>
                 </div>
                 <canvas id="chartAvg" class="chart-canvas"></canvas>
             </div>
-
             <div class="chart-box">
                 <div class="chart-header">
-                    <h4 style="color: #dc3545;">🔴 R (Red) 변화</h4>
+                    <h4 style="color: #dc2626;">🔴 R (Red) 변화</h4>
                     <button class="btn btn-download btn-sm single-dl-btn" data-target="chartR" data-name="Red_Multi_Graph" disabled>저장</button>
                 </div>
                 <canvas id="chartR" class="chart-canvas"></canvas>
             </div>
-
             <div class="chart-box">
                 <div class="chart-header">
-                    <h4 style="color: #28a745;">🟢 G (Green) 변화</h4>
+                    <h4 style="color: #16a34a;">🟢 G (Green) 변화</h4>
                     <button class="btn btn-download btn-sm single-dl-btn" data-target="chartG" data-name="Green_Multi_Graph" disabled>저장</button>
                 </div>
                 <canvas id="chartG" class="chart-canvas"></canvas>
             </div>
-
             <div class="chart-box">
                 <div class="chart-header">
-                    <h4 style="color: #007bff;">🔵 B (Blue) 변화</h4>
+                    <h4 style="color: #2563eb;">🔵 B (Blue) 변화</h4>
                     <button class="btn btn-download btn-sm single-dl-btn" data-target="chartB" data-name="Blue_Multi_Graph" disabled>저장</button>
                 </div>
                 <canvas id="chartB" class="chart-canvas"></canvas>
             </div>
         </div>
     </div>
-
     <script>
         const input = document.getElementById('imageInput');
         const intervalInput = document.getElementById('intervalInput');
@@ -315,29 +532,20 @@
         const completeBtn = document.getElementById('completeBtn');
         const resetBtn = document.getElementById('resetBtn');
         const downloadAllBtn = document.getElementById('downloadAllBtn');
-
         let images = [];
         let currentIndex = 0;
         
         let currentTubeRecords = []; 
         let allTubesData = []; 
-
         let chartR = null;
         let chartG = null;
         let chartB = null;
-        let chartAvg = null; // 평균 그래프 변수 추가
-
+        let chartAvg = null;
         const colorPalette = [
-            '#e6194b', 
-            '#f58231', 
-            '#ffe119', 
-            '#3cb44b', 
-            '#4363d8', 
-            '#911eb4', 
-            '#46f0f0', 
-            '#f032e6'  
+            '#e6194b', '#f58231', '#ffe119', '#3cb44b', 
+            '#4363d8', '#911eb4', '#46f0f0', '#f032e6',
+            '#800000', '#9a6324', '#808000', '#000075'
         ];
-
         const customCanvasBackgroundColor = {
             id: 'customCanvasBackgroundColor',
             beforeDraw: (chart, args, options) => {
@@ -349,7 +557,6 @@
                 ctx.restore();
             }
         };
-
         const dataLabelsPlugin = {
             id: 'dataLabelsPlugin',
             afterDatasetsDraw(chart, args, pluginOptions) {
@@ -359,7 +566,7 @@
                     if (!meta.hidden) {
                         meta.data.forEach((element, index) => {
                             ctx.fillStyle = dataset.borderColor; 
-                            ctx.font = 'bold 11px "Malgun Gothic", sans-serif'; 
+                            ctx.font = 'bold 12px "Pretendard", sans-serif'; 
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'bottom';
                             const dataString = dataset.data[index].toString();
@@ -369,7 +576,6 @@
                 });
             }
         };
-
         intervalInput.addEventListener('input', () => {
             if (images.length > 0) {
                 updateLogView();
@@ -377,54 +583,51 @@
                 
                 if (currentIndex < images.length) {
                     const interval = parseInt(intervalInput.value) || 1;
-                    status.innerText = `[${currentIndex * interval}분 사진] 시험관 중심을 터치하세요.`;
+                    status.innerHTML = `[${currentIndex * interval}분 사진] 시험관 중심을 터치하세요.`;
                 }
             }
         });
-
         input.addEventListener('change', (e) => {
             if(e.target.files.length === 0) return;
             images = Array.from(e.target.files);
             startProcess();
         });
-
         function startProcess() {
             currentIndex = 0;
             currentTubeRecords = [];
             allTubesData = [];
-            checkboxGroup.innerHTML = '<span style="color:#94a3b8; font-size:13px;">추출 완료된 데이터셋이 없습니다.</span>';
+            checkboxGroup.innerHTML = '<span style="color:#94a3b8; font-size:14px; padding: 4px;">추출 완료된 데이터셋이 없습니다.</span>';
             
             destroyAllCharts();
             updateLogView();
             loadNextImage();
         }
-
         function destroyAllCharts() {
             if(chartR) { chartR.destroy(); chartR = null; }
             if(chartG) { chartG.destroy(); chartG = null; }
             if(chartB) { chartB.destroy(); chartB = null; }
-            if(chartAvg) { chartAvg.destroy(); chartAvg = null; } // 평균 차트 소멸 추가
+            if(chartAvg) { chartAvg.destroy(); chartAvg = null; }
             
             downloadAllBtn.disabled = true;
             document.querySelectorAll('.single-dl-btn').forEach(btn => btn.disabled = true);
         }
-
         resetBtn.addEventListener('click', () => {
             input.value = ""; 
             images = [];
             currentIndex = 0;
             currentTubeRecords = [];
             allTubesData = [];
-            checkboxGroup.innerHTML = '<span style="color:#94a3b8; font-size:13px;">추출 완료된 데이터셋이 없습니다.</span>';
+            checkboxGroup.innerHTML = '<span style="color:#94a3b8; font-size:14px; padding: 4px;">추출 완료된 데이터셋이 없습니다.</span>';
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             status.innerText = "사진을 업로드해주세요";
-            status.style.color = "#007bff";
+            status.style.color = "var(--info)";
+            status.style.background = "#eff6ff";
+            status.style.borderColor = "#bfdbfe";
             
             destroyAllCharts();
             updateLogView();
         });
-
         undoBtn.addEventListener('click', () => {
             if(currentTubeRecords.length > 0) {
                 currentTubeRecords.pop(); 
@@ -434,7 +637,6 @@
                 loadNextImage(); 
             }
         });
-
         nextTubeBtn.addEventListener('click', () => {
             if(currentTubeRecords.length < images.length) return;
             
@@ -456,7 +658,6 @@
             updateLogView();
             loadNextImage();
         });
-
         completeBtn.addEventListener('click', () => {
             if(currentTubeRecords.length === images.length) {
                 const labelInput = prompt("마지막 시험관의 라벨(이름)을 설정해주세요:", `시험관 ${allTubesData.length + 1}`);
@@ -478,12 +679,13 @@
             updateLogView();
             
             status.innerText = "✅ 모든 시험관 다중 레이어 매핑 및 분석 완료!";
-            status.style.color = "#198754";
+            status.style.color = "var(--success)";
+            status.style.background = "#d1fae5";
+            status.style.borderColor = "#a7f3d0";
             
             downloadAllBtn.disabled = false;
             document.querySelectorAll('.single-dl-btn').forEach(btn => btn.disabled = false);
         });
-
         function buildFilterCheckboxes() {
             checkboxGroup.innerHTML = '';
             allTubesData.forEach((tube, index) => {
@@ -501,8 +703,8 @@
                 const colorDot = document.createElement('span');
                 const strokeColor = colorPalette[index % colorPalette.length];
                 colorDot.style.display = 'inline-block';
-                colorDot.style.width = '10px';
-                colorDot.style.height = '10px';
+                colorDot.style.width = '12px';
+                colorDot.style.height = '12px';
                 colorDot.style.backgroundColor = strokeColor;
                 colorDot.style.borderRadius = '50%';
                 
@@ -512,25 +714,27 @@
                 checkboxGroup.appendChild(label);
             });
         }
-
         function loadNextImage() {
             if (images.length === 0) return;
             
             if (currentIndex >= images.length) {
                 status.innerText = "🚩 현재 시험관의 모든 시간대 수집 완료! 아래 [다음 그래프] 버튼을 누르세요.";
-                status.style.color = "#198754";
+                status.style.color = "var(--success)";
+                status.style.background = "#d1fae5";
+                status.style.borderColor = "#a7f3d0";
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.font = "bold 18px 'Malgun Gothic'";
-                ctx.fillStyle = "#198754";
+                ctx.font = "bold 20px 'Pretendard'";
+                ctx.fillStyle = "var(--success)";
                 ctx.textAlign = "center";
                 ctx.fillText("현재 시험관 캡처 완료", canvas.width/2, canvas.height/2);
                 return;
             }
-
             const interval = parseInt(intervalInput.value) || 1;
             const currentMin = currentIndex * interval;
-            status.innerText = `[${allTubesData.length + 1}번째 시험관 수집 중] ${currentMin}분 사진 정중앙을 터치하세요.`;
-            status.style.color = "#dc3545";
+            status.innerHTML = `[<span style="font-weight:700;">${allTubesData.length + 1}</span>번째 시험관] <b>${currentMin}분</b> 사진 정중앙을 터치하세요.`;
+            status.style.color = "var(--danger)";
+            status.style.background = "#fee2e2";
+            status.style.borderColor = "#fecaca";
             
             const reader = new FileReader();
             reader.onload = function(event) {
@@ -544,59 +748,57 @@
             }
             reader.readAsDataURL(images[currentIndex]);
         }
-
         canvas.addEventListener('click', (e) => {
             if(images.length === 0 || currentIndex >= images.length) return;
-
             const rect = canvas.getBoundingClientRect();
-            
-            // CSS 배율이 반영된 클릭 좌표를 캔버스 원본 크기 좌표로 정확하게 매핑
             const x = (e.clientX - rect.left) * (canvas.width / rect.width);
             const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-
             const targetX = Math.max(0, Math.min(canvas.width - 1, Math.round(x)));
             const targetY = Math.max(0, Math.min(canvas.height - 1, Math.round(y)));
-
             const pixel = ctx.getImageData(targetX, targetY, 1, 1).data;
-
             currentTubeRecords.push({
                 r: pixel[0], g: pixel[1], b: pixel[2]
             });
-
             currentIndex++;
             updateLogView();
             updateAllCharts(); 
             loadNextImage();
         });
-
         function updateLogView() {
             const interval = parseInt(intervalInput.value) || 1;
             
-            let html = `<h4>📝 현재 시험관 수집 로그 (${currentTubeRecords.length}/${images.length})</h4>`;
+            let html = `<h4>📝 현재 시험관 수집 로그 <span style="color:var(--primary);">(${currentTubeRecords.length}/${images.length})</span></h4>`;
             currentTubeRecords.forEach((rec, idx) => {
                 const avg = Math.round((rec.r + rec.g + rec.b) / 3);
-                html += `${idx * interval}분 | <span style="color:#dc3545;">R:${rec.r}</span> <span style="color:#28a745;">G:${rec.g}</span> <span style="color:#007bff;">B:${rec.b}</span> <b>(평균:${avg})</b><br>`;
+                html += `<div style="margin-bottom: 8px; display: flex; align-items: center; font-family: 'Pretendard', monospace; font-size: 13px;">
+                    <span style="width: 45px; font-weight: 700; color: var(--text-muted);">${idx * interval}분</span>
+                    <span class="badge badge-red">R: ${rec.r.toString().padStart(3,' ')}</span>
+                    <span class="badge badge-green">G: ${rec.g.toString().padStart(3,' ')}</span>
+                    <span class="badge badge-blue">B: ${rec.b.toString().padStart(3,' ')}</span>
+                    <span class="badge badge-gray">평균: ${avg.toString().padStart(3,' ')}</span>
+                </div>`;
             });
             
             if(allTubesData.length > 0) {
                 html += `<hr><h4>📦 보관 완료된 시험관 목록</h4>`;
                 allTubesData.forEach((tube, i) => {
                     const strokeColor = colorPalette[i % colorPalette.length];
-                    html += `<b style="color:${strokeColor};">[${i+1}] ${tube.label}</b>: ${tube.records.length}개 데이터 세트 완비<br>`;
+                    html += `<div style="margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
+                        <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background-color:${strokeColor}; border: 2px solid white; box-shadow: 0 0 0 1px #e2e8f0;"></span>
+                        <b style="color: var(--text-main); font-size: 14px;">[${i+1}] ${tube.label}</b>
+                        <span style="color: var(--text-muted); font-size: 13px;">— ${tube.records.length}개 세트</span>
+                    </div>`;
                 });
             }
             
             dataLog.innerHTML = html;
             dataLog.scrollTop = dataLog.scrollHeight;
-
             undoBtn.disabled = currentTubeRecords.length === 0;
             nextTubeBtn.disabled = currentTubeRecords.length !== images.length;
             completeBtn.disabled = (allTubesData.length === 0 && currentTubeRecords.length !== images.length);
         }
-
         function getGlobalYAxisBounds() {
             let allNumbers = [];
-
             const checkedBoxes = checkboxGroup.querySelectorAll('input[type="checkbox"]:checked');
             if (checkedBoxes.length > 0) {
                 const checkedIndexes = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
@@ -606,38 +808,28 @@
                     });
                 });
             }
-
             if (currentTubeRecords.length > 0) {
                 currentTubeRecords.forEach(rec => {
                     allNumbers.push(rec.r, rec.g, rec.b);
                 });
             }
-
             if (allNumbers.length === 0) return { min: 0, max: 255 };
-
             const minVal = Math.min(...allNumbers);
             const maxVal = Math.max(...allNumbers);
-
             let yMin = Math.floor(minVal / 10) * 10;
             let yMax = Math.ceil(maxVal / 10) * 10;
-
             if (yMin === minVal) yMin -= 10;
             if (yMax === maxVal) yMax += 10;
-
             if (yMin < 0) yMin = 0;
             if (yMax > 255) yMax = 255;
-
             if (yMin === yMax) {
                 yMin = Math.max(0, yMin - 10);
                 yMax = Math.min(255, yMax + 10);
             }
-
             return { min: yMin, max: yMax };
         }
-
         function getActiveDatasets(channelKey) {
             const datasets = [];
-
             const checkedBoxes = checkboxGroup.querySelectorAll('input[type="checkbox"]:checked');
             if (checkedBoxes.length > 0) {
                 const checkedIndexes = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
@@ -650,22 +842,20 @@
                     });
                     
                     const strokeColor = colorPalette[tubeIdx % colorPalette.length];
-
                     datasets.push({
                         label: tube.label,
                         data: data,
                         borderColor: strokeColor,
                         backgroundColor: strokeColor + '15',
-                        borderWidth: 2.5,
+                        borderWidth: 3,
                         pointRadius: 5,
-                        pointHoverRadius: 7,
+                        pointHoverRadius: 8,
                         pointBackgroundColor: strokeColor,
                         fill: false, 
-                        tension: 0.1
+                        tension: 0.2
                     });
                 });
             }
-
             if (currentTubeRecords.length > 0) {
                 const data = currentTubeRecords.map(r => {
                     if (channelKey === 'avg') return Math.round((r.r + r.g + r.b) / 3);
@@ -673,36 +863,31 @@
                 });
                 const nextIdx = allTubesData.length;
                 const strokeColor = colorPalette[nextIdx % colorPalette.length];
-
                 datasets.push({
                     label: `분석 진행중 (시험관 ${nextIdx + 1})`,
                     data: data,
                     borderColor: strokeColor,
                     backgroundColor: strokeColor + '15',
-                    borderWidth: 2.5,
+                    borderWidth: 3,
                     pointRadius: 5,
-                    pointHoverRadius: 7,
+                    pointHoverRadius: 8,
                     pointBackgroundColor: strokeColor,
-                    borderDash: [5, 5], 
+                    borderDash: [6, 6], 
                     fill: false, 
-                    tension: 0.1
+                    tension: 0.2
                 });
             }
-
             return datasets;
         }
-
         function createOrUpdateMultiChart(chartObj, canvasId, labels, channelKey, globalBounds) {
             const datasets = getActiveDatasets(channelKey);
-
             let titleText = '';
             let titleColor = '';
             
-            if (channelKey === 'r') { titleText = '🔴 R (Red) 채널 다중 변화 그래프'; titleColor = '#dc3545'; }
-            else if (channelKey === 'g') { titleText = '🟢 G (Green) 채널 다중 변화 그래프'; titleColor = '#28a745'; }
-            else if (channelKey === 'b') { titleText = '🔵 B (Blue) 채널 다중 변화 그래프'; titleColor = '#007bff'; }
-            else if (channelKey === 'avg') { titleText = '⚫ RGB 평균 변화 다중 그래프'; titleColor = '#6c757d'; }
-
+            if (channelKey === 'r') { titleText = '🔴 R (Red) 채널 다중 변화 그래프'; titleColor = '#dc2626'; }
+            else if (channelKey === 'g') { titleText = '🟢 G (Green) 채널 다중 변화 그래프'; titleColor = '#16a34a'; }
+            else if (channelKey === 'b') { titleText = '🔵 B (Blue) 채널 다중 변화 그래프'; titleColor = '#2563eb'; }
+            else if (channelKey === 'avg') { titleText = '⚫ RGB 평균 변화 다중 그래프'; titleColor = '#475569'; }
             if(chartObj) {
                 chartObj.data.labels = labels;
                 chartObj.data.datasets = datasets;
@@ -723,25 +908,24 @@
                         layout: { padding: { top: 15, right: 15, left: 10, bottom: 5 } },
                         plugins: {
                             customCanvasBackgroundColor: { color: 'white' },
-                            legend: { display: true, labels: { boxWidth: 15, font: { size: 12, weight:'bold' } } },
+                            legend: { display: true, labels: { boxWidth: 15, font: { size: 13, weight:'700', family: '"Pretendard", sans-serif' } } },
                             title: {
                                 display: true,
                                 text: titleText,
                                 color: titleColor,
-                                font: { size: 15, weight: 'bold', family: '"Malgun Gothic", sans-serif' },
-                                padding: { top: 10, bottom: 10 }
+                                font: { size: 16, weight: '800', family: '"Pretendard", sans-serif' },
+                                padding: { top: 10, bottom: 16 }
                             }
                         },
                         scales: {
-                            y: { min: globalBounds.min, max: globalBounds.max, ticks: { font: { size: 11 } } },
-                            x: { ticks: { font: { size: 11 } } }
+                            y: { min: globalBounds.min, max: globalBounds.max, ticks: { font: { size: 12, family: '"Pretendard", sans-serif', weight: '500' } } },
+                            x: { ticks: { font: { size: 12, family: '"Pretendard", sans-serif', weight: '500' } }, grid: { display: false } }
                         }
                     },
                     plugins: [customCanvasBackgroundColor, dataLabelsPlugin] 
                 });
             }
         }
-
         function updateAllCharts() {
             const interval = parseInt(intervalInput.value) || 1;
             
@@ -752,7 +936,6 @@
             );
             const labels = Array.from({length: maxPoints}, (_, idx) => `${idx * interval}분`);
             const globalBounds = getGlobalYAxisBounds();
-
             chartAvg = createOrUpdateMultiChart(chartAvg, 'chartAvg', labels, 'avg', globalBounds);
             chartR = createOrUpdateMultiChart(chartR, 'chartR', labels, 'r', globalBounds);
             chartG = createOrUpdateMultiChart(chartG, 'chartG', labels, 'g', globalBounds);
@@ -763,7 +946,6 @@
                 document.querySelectorAll('.single-dl-btn').forEach(btn => btn.disabled = false);
             }
         }
-
         function downloadCanvasAsImage(canvasId, fileName) {
             const chartCanvas = document.getElementById(canvasId);
             if(!chartCanvas) return;
@@ -773,7 +955,6 @@
             link.download = fileName + '.png';
             link.click();
         }
-
         document.body.addEventListener('click', (e) => {
             if (e.target.classList.contains('single-dl-btn')) {
                 const targetCanvas = e.target.getAttribute('data-target');
@@ -781,7 +962,6 @@
                 downloadCanvasAsImage(targetCanvas, name);
             }
         });
-
         downloadAllBtn.addEventListener('click', () => {
             if(!chartR || !chartG || !chartB || !chartAvg) return;
             setTimeout(() => downloadCanvasAsImage('chartAvg', '1_Average_Combined_Graph'), 0);
