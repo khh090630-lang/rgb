@@ -539,7 +539,7 @@
 
             <button id="downloadAllBtn" class="btn-download-all" disabled>📥 표시된 그래프 이미지 일괄 저장</button>
 
-            <!-- RGB 평균 그래프 추가 -->
+            <!-- RGB 평균 그래프 -->
             <div class="chart-box">
                 <div class="chart-header">
                     <h4 style="color: #475569;">⚫ RGB 평균 변화</h4>
@@ -550,6 +550,18 @@
                 </div>
             </div>
 
+            <!-- RG 평균 그래프 추가 -->
+            <div class="chart-box">
+                <div class="chart-header">
+                    <h4 style="color: #ca8a04;">🟡 RG (Red+Green) 평균 변화</h4>
+                    <button class="btn btn-download btn-sm single-dl-btn" data-target="chartRGAvg" data-name="RG_Average_Multi_Graph" disabled>저장</button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chartRGAvg" class="chart-canvas"></canvas>
+                </div>
+            </div>
+
+            <!-- R 그래프 -->
             <div class="chart-box">
                 <div class="chart-header">
                     <h4 style="color: #dc2626;">🔴 R (Red) 변화</h4>
@@ -560,6 +572,7 @@
                 </div>
             </div>
 
+            <!-- G 그래프 -->
             <div class="chart-box">
                 <div class="chart-header">
                     <h4 style="color: #16a34a;">🟢 G (Green) 변화</h4>
@@ -570,6 +583,7 @@
                 </div>
             </div>
 
+            <!-- B 그래프 -->
             <div class="chart-box">
                 <div class="chart-header">
                     <h4 style="color: #2563eb;">🔵 B (Blue) 변화</h4>
@@ -607,6 +621,7 @@
         let chartG = null;
         let chartB = null;
         let chartAvg = null;
+        let chartRGAvg = null; // RG 평균 그래프 객체 추가
 
         const colorPalette = [
             '#e6194b', '#f58231', '#ffe119', '#3cb44b', 
@@ -690,6 +705,7 @@
             if(chartG) { chartG.destroy(); chartG = null; }
             if(chartB) { chartB.destroy(); chartB = null; }
             if(chartAvg) { chartAvg.destroy(); chartAvg = null; }
+            if(chartRGAvg) { chartRGAvg.destroy(); chartRGAvg = null; }
             
             downloadAllBtn.disabled = true;
             document.querySelectorAll('.single-dl-btn').forEach(btn => btn.disabled = true);
@@ -867,13 +883,15 @@
             let html = `<h4>📝 현재 시험관 수집 로그 <span style="color:var(--primary);">(${currentTubeRecords.length}/${images.length})</span></h4>`;
             currentTubeRecords.forEach((rec, idx) => {
                 const avg = Math.round((rec.r + rec.g + rec.b) / 3);
+                const rgAvg = Math.round((rec.r + rec.g) / 2); // RG 평균 추가
                 const currentMin = idx < customTimes.length ? customTimes[idx] : "?";
                 html += `<div style="margin-bottom: 8px; display: flex; align-items: center; font-family: 'Pretendard', monospace; font-size: 13px;">
                     <span style="width: 45px; font-weight: 700; color: var(--text-muted);">${currentMin}분</span>
                     <span class="badge badge-red">R: ${rec.r.toString().padStart(3,' ')}</span>
                     <span class="badge badge-green">G: ${rec.g.toString().padStart(3,' ')}</span>
                     <span class="badge badge-blue">B: ${rec.b.toString().padStart(3,' ')}</span>
-                    <span class="badge badge-gray">평균: ${avg.toString().padStart(3,' ')}</span>
+                    <span class="badge badge-gray">RGB평균: ${avg.toString().padStart(3,' ')}</span>
+                    <span class="badge" style="background:#fef08a; color:#a16207;">RG평균: ${rgAvg.toString().padStart(3,' ')}</span>
                 </div>`;
             });
             
@@ -949,7 +967,7 @@
                     const tube = allTubesData[tubeIdx];
                     
                     const data = tube.records.map((r, idx) => {
-                        let yVal = (channelKey === 'avg') ? Math.round((r.r + r.g + r.b) / 3) : r[channelKey];
+                        let yVal = (channelKey === 'avg') ? Math.round((r.r + r.g + r.b) / 3) : (channelKey === 'rg_avg' ? Math.round((r.r + r.g) / 2) : r[channelKey]);
                         let xVal = idx < customTimes.length ? customTimes[idx] : (customTimes.length > 0 ? customTimes[customTimes.length-1] + (idx - customTimes.length + 1) : idx);
                         return { x: xVal, y: yVal };
                     });
@@ -973,7 +991,7 @@
 
             if (currentTubeRecords.length > 0) {
                 const data = currentTubeRecords.map((r, idx) => {
-                    let yVal = (channelKey === 'avg') ? Math.round((r.r + r.g + r.b) / 3) : r[channelKey];
+                    let yVal = (channelKey === 'avg') ? Math.round((r.r + r.g + r.b) / 3) : (channelKey === 'rg_avg' ? Math.round((r.r + r.g) / 2) : r[channelKey]);
                     let xVal = idx < customTimes.length ? customTimes[idx] : (customTimes.length > 0 ? customTimes[customTimes.length-1] + (idx - customTimes.length + 1) : idx);
                     return { x: xVal, y: yVal };
                 });
@@ -1008,6 +1026,7 @@
             else if (channelKey === 'g') { titleText = '🟢 G (Green) 채널 다중 변화 그래프'; titleColor = '#16a34a'; }
             else if (channelKey === 'b') { titleText = '🔵 B (Blue) 채널 다중 변화 그래프'; titleColor = '#2563eb'; }
             else if (channelKey === 'avg') { titleText = '⚫ RGB 평균 변화 다중 그래프'; titleColor = '#475569'; }
+            else if (channelKey === 'rg_avg') { titleText = '🟡 RG (Red+Green) 평균 변화 다중 그래프'; titleColor = '#ca8a04'; }
 
             if(chartObj) {
                 chartObj.data.datasets = datasets;
@@ -1059,6 +1078,7 @@
             const globalBounds = getGlobalYAxisBounds();
 
             chartAvg = createOrUpdateMultiChart(chartAvg, 'chartAvg', 'avg', globalBounds, customTimes);
+            chartRGAvg = createOrUpdateMultiChart(chartRGAvg, 'chartRGAvg', 'rg_avg', globalBounds, customTimes);
             chartR = createOrUpdateMultiChart(chartR, 'chartR', 'r', globalBounds, customTimes);
             chartG = createOrUpdateMultiChart(chartG, 'chartG', 'g', globalBounds, customTimes);
             chartB = createOrUpdateMultiChart(chartB, 'chartB', 'b', globalBounds, customTimes);
@@ -1106,11 +1126,12 @@
         });
 
         downloadAllBtn.addEventListener('click', () => {
-            if(!chartR || !chartG || !chartB || !chartAvg) return;
+            if(!chartR || !chartG || !chartB || !chartAvg || !chartRGAvg) return;
             setTimeout(() => downloadCanvasAsImage('chartAvg', '1_Average_Combined_Graph'), 0);
-            setTimeout(() => downloadCanvasAsImage('chartR', '2_Red_Combined_Graph'), 400);
-            setTimeout(() => downloadCanvasAsImage('chartG', '3_Green_Combined_Graph'), 800);
-            setTimeout(() => downloadCanvasAsImage('chartB', '4_Blue_Combined_Graph'), 1200);
+            setTimeout(() => downloadCanvasAsImage('chartRGAvg', '2_RG_Average_Combined_Graph'), 400);
+            setTimeout(() => downloadCanvasAsImage('chartR', '3_Red_Combined_Graph'), 800);
+            setTimeout(() => downloadCanvasAsImage('chartG', '4_Green_Combined_Graph'), 1200);
+            setTimeout(() => downloadCanvasAsImage('chartB', '5_Blue_Combined_Graph'), 1600);
         });
     </script>
 </body>
