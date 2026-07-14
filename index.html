@@ -473,6 +473,24 @@
         .badge-green { background: #dcfce3; color: #16a34a; }
         .badge-blue { background: #dbeafe; color: #2563eb; }
         .badge-gray { background: #f1f5f9; color: #475569; }
+        
+        .btn-edit-label {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px;
+            color: #94a3b8;
+            transition: color 0.2s, transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+        .btn-edit-label:hover {
+            background: #f1f5f9;
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body>
@@ -863,10 +881,11 @@
                 html += `<hr><h4>📦 보관 완료된 시험관 목록</h4>`;
                 allTubesData.forEach((tube, i) => {
                     const strokeColor = colorPalette[i % colorPalette.length];
-                    html += `<div style="margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
+                    html += `<div style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
                         <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background-color:${strokeColor}; border: 2px solid white; box-shadow: 0 0 0 1px #e2e8f0;"></span>
                         <b style="color: var(--text-main); font-size: 14px;">[${i+1}] ${tube.label}</b>
-                        <span style="color: var(--text-muted); font-size: 13px;">— ${tube.records.length}개 세트</span>
+                        <button class="btn-edit-label" onclick="editTubeLabel(${i})" title="이름 수정">✏️</button>
+                        <span style="color: var(--text-muted); font-size: 13px; margin-left:auto;">— ${tube.records.length}개 세트</span>
                     </div>`;
                 });
             }
@@ -1066,6 +1085,17 @@
             link.download = fileName + '.png';
             link.click();
         }
+        
+        window.editTubeLabel = function(index) {
+            const currentLabel = allTubesData[index].label;
+            const newLabel = prompt("새로운 그래프(시험관) 이름을 입력하세요:", currentLabel);
+            if (newLabel && newLabel.trim() !== "" && newLabel.trim() !== currentLabel) {
+                allTubesData[index].label = newLabel.trim();
+                buildFilterCheckboxes();
+                updateLogView();
+                updateAllCharts();
+            }
+        };
 
         document.body.addEventListener('click', (e) => {
             if (e.target.classList.contains('single-dl-btn')) {
