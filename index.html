@@ -156,7 +156,7 @@
         }
 
         .time-setting input {
-            width: 140px; /* 여러 개 입력할 수 있도록 너비 늘림 */
+            width: 140px; 
             padding: 8px;
             text-align: center;
             font-weight: 700;
@@ -599,8 +599,8 @@
         function getTimeLabels() {
             const val = timeInput.value;
             const labels = val.split(',').map(s => s.trim()).filter(s => s !== '');
-            if (labels.length === 0) return ['0'];
-            return labels;
+            if (labels.length === 0) return [0];
+            return labels.map(s => parseFloat(s)).filter(n => !isNaN(n));
         }
 
         const customCanvasBackgroundColor = {
@@ -627,9 +627,9 @@
                             ctx.font = 'bold 12px "Pretendard", sans-serif'; 
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'bottom';
-                            const dataString = dataset.data[index] !== undefined ? dataset.data[index].toString() : '';
-                            if (dataString) {
-                                ctx.fillText(dataString, element.x, element.y - 8);
+                            const dataObj = dataset.data[index];
+                            if (dataObj && dataObj.y !== undefined) {
+                                ctx.fillText(dataObj.y.toString(), element.x, element.y - 8);
                             }
                         });
                     }
@@ -920,7 +920,7 @@
             return { min: yMin, max: yMax };
         }
 
-        function getActiveDatasets(channelKey) {
+        function getActiveDatasets(channelKey, customTimes) {
             const datasets = [];
 
             const checkedBoxes = checkboxGroup.querySelectorAll('input[type="checkbox"]:checked');
@@ -929,9 +929,10 @@
                 checkedIndexes.forEach((tubeIdx) => {
                     const tube = allTubesData[tubeIdx];
                     
-                    const data = tube.records.map(r => {
-                        if (channelKey === 'avg') return Math.round((r.r + r.g + r.b) / 3);
-                        return r[channelKey];
+                    const data = tube.records.map((r, idx) => {
+                        let yVal = (channelKey === 'avg') ? Math.round((r.r + r.g + r.b) / 3) : r[channelKey];
+                        let xVal = idx < customTimes.length ? customTimes[idx] : (customTimes.length > 0 ? customTimes[customTimes.length-1] + (idx - customTimes.length + 1) : idx);
+                        return { x: xVal, y: yVal };
                     });
                     
                     const strokeColor = colorPalette[tubeIdx % colorPalette.length];
@@ -952,9 +953,10 @@
             }
 
             if (currentTubeRecords.length > 0) {
-                const data = currentTubeRecords.map(r => {
-                    if (channelKey === 'avg') return Math.round((r.r + r.g + r.b) / 3);
-                    return r[channelKey];
+                const data = currentTubeRecords.map((r, idx) => {
+                    let yVal = (channelKey === 'avg') ? Math.round((r.r + r.g + r.b) / 3) : r[channelKey];
+                    let xVal = idx < customTimes.length ? customTimes[idx] : (customTimes.length > 0 ? customTimes[customTimes.length-1] + (idx - customTimes.length + 1) : idx);
+                    return { x: xVal, y: yVal };
                 });
                 const nextIdx = allTubesData.length;
                 const strokeColor = colorPalette[nextIdx % colorPalette.length];
@@ -977,8 +979,8 @@
             return datasets;
         }
 
-        function createOrUpdateMultiChart(chartObj, canvasId, labels, channelKey, globalBounds) {
-            const datasets = getActiveDatasets(channelKey);
+        function createOrUpdateMultiChart(chartObj, canvasId, channelKey, globalBounds, customTimes) {
+            const datasets = getActiveDatasets(channelKey, customTimes);
 
             let titleText = '';
             let titleColor = '';
@@ -989,7 +991,6 @@
             else if (channelKey === 'avg') { titleText = '⚫ RGB 평균 변화 다중 그래프'; titleColor = '#475569'; }
 
             if(chartObj) {
-                chartObj.data.labels = labels;
                 chartObj.data.datasets = datasets;
                 chartObj.options.scales.y.min = globalBounds.min;
                 chartObj.options.scales.y.max = globalBounds.max;
@@ -1000,7 +1001,7 @@
                 const ctxChart = document.getElementById(canvasId).getContext('2d');
                 return new Chart(ctxChart, {
                     type: 'line',
-                    data: { labels: labels, datasets: datasets },
+                    data: { datasets: datasets },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false, 
@@ -1018,7 +1019,15 @@
                         },
                         scales: {
                             y: { min: globalBounds.min, max: globalBounds.max, ticks: { font: { size: 12, family: '"Pretendard", sans-serif', weight: '500' } } },
-                            x: { ticks: { font: { size: 12, family: '"Pretendard", sans-serif', weight: '500' } }, grid: { display: false } }
+                            x: { 
+                                type: 'linear',
+                                ticks: { 
+                                    font: { size: 12, family: '"Pretendard", sans-serif', weight: '500' },
+                                    stepSize: 1,
+                                    callback: function(value) { return value + '분'; }
+                                }, 
+                                grid: { display: false } 
+                            }
                         }
                     },
                     plugins: [customCanvasBackgroundColor, dataLabelsPlugin] 
@@ -1028,6 +1037,12 @@
 
         function updateAllCharts() {
             const customTimes = getTimeLabels();
+            const globalBounds = getGlobalYAxisBounds();
+
+            chartAvg = createOrUpdateMultiChart(chartAvg, 'chartAvg', 'avg', globalBounds, customTimes);
+            chartR = createOrUpdateMultiChart(chartR, 'chartR', 'r', globalBounds, customTimes);
+            chartG = createOrUpdateMultiChart(chartG, 'chartG', 'g', globalBounds, customTimes);
+            chartB = createOrUpdateMultiChart(chartB, 'chartB', 'b', globalBounds, customTimes);
             
             const maxPoints = Math.max(
                 images.length, 
@@ -1035,19 +1050,7 @@
                 currentTubeRecords.length,
                 customTimes.length
             );
-            
-            const labels = Array.from({length: maxPoints}, (_, idx) => {
-                if (idx < customTimes.length) return `${customTimes[idx]}분`;
-                return `?분`;
-            });
-            
-            const globalBounds = getGlobalYAxisBounds();
 
-            chartAvg = createOrUpdateMultiChart(chartAvg, 'chartAvg', labels, 'avg', globalBounds);
-            chartR = createOrUpdateMultiChart(chartR, 'chartR', labels, 'r', globalBounds);
-            chartG = createOrUpdateMultiChart(chartG, 'chartG', labels, 'g', globalBounds);
-            chartB = createOrUpdateMultiChart(chartB, 'chartB', labels, 'b', globalBounds);
-            
             if (maxPoints > 0) {
                 downloadAllBtn.disabled = false;
                 document.querySelectorAll('.single-dl-btn').forEach(btn => btn.disabled = false);
